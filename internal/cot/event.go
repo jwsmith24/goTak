@@ -38,6 +38,7 @@ type AirTrack struct {
 	SpeedMPS    float64
 	Time        time.Time
 	StaleWindow time.Duration // defaults to 5 minutes
+	Sensor      *SensorFOV    // optional; omitted from the event when nil
 }
 
 type eventXML struct {
@@ -64,6 +65,7 @@ type pointXML struct {
 type detailXML struct {
 	Contact contactXML `xml:"contact"`
 	Track   trackXML   `xml:"track"`
+	Sensor  *sensorXML `xml:"sensor,omitempty"`
 }
 
 type contactXML struct {
@@ -95,6 +97,15 @@ func (t AirTrack) BuildEvent() ([]byte, error) {
 	when := t.Time.UTC()
 	timeStr := when.Format(cotTimeLayout)
 
+	var sensor *sensorXML
+	if t.Sensor != nil {
+		sensor = &sensorXML{
+			Azimuth: normalizeDegrees(t.CourseDeg + t.Sensor.AzimuthOffsetDeg),
+			FOV:     t.Sensor.FOVDeg,
+			Range:   t.Sensor.RangeMeters,
+		}
+	}
+
 	event := eventXML{
 		Version: "2.0",
 		UID:     t.UID,
@@ -113,6 +124,7 @@ func (t AirTrack) BuildEvent() ([]byte, error) {
 		Detail: detailXML{
 			Contact: contactXML{Callsign: t.Callsign},
 			Track:   trackXML{Course: t.CourseDeg, Speed: t.SpeedMPS},
+			Sensor:  sensor,
 		},
 	}
 

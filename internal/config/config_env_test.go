@@ -28,6 +28,22 @@ func TestParseFlagsWithEnvFile_FallsBackToEnvFileValues(t *testing.T) {
 	}
 }
 
+func TestParseFlagsWithEnvFile_ScenarioPathFallsBackToEnvFile(t *testing.T) {
+	envPath := writeTempEnvFile(t, ""+
+		"GOTAK_SERVER=192.168.1.50\n"+
+		"GOTAK_USERNAME=dev\n"+
+		"GOTAK_PASSWORD=devpass\n"+
+		"GOTAK_SCENARIO=scenarios/austin-capitol.json\n")
+
+	cfg, err := parseFlags(nil, envPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.ScenarioPath != "scenarios/austin-capitol.json" {
+		t.Errorf("ScenarioPath = %q, want %q", cfg.ScenarioPath, "scenarios/austin-capitol.json")
+	}
+}
+
 func TestParseFlagsWithEnvFile_FlagsOverrideEnvFileValues(t *testing.T) {
 	envPath := writeTempEnvFile(t, ""+
 		"GOTAK_SERVER=192.168.1.50\n"+

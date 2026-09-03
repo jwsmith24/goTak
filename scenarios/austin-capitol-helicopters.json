@@ -1,0 +1,104 @@
+{
+  "tickIntervalSeconds": 2,
+  "tracks": [
+    {
+      "uid": "gotak-austin-helo01",
+      "callsign": "HELO01",
+      "type": "a-f-A-M-H",
+      "hae": 300,
+      "orbit": {
+        "centerLat": 30.2747,
+        "centerLon": -97.7404,
+        "radiusMeters": 800,
+        "speedKts": 68,
+        "clockwise": true,
+        "initialBearingDeg": 0
+      },
+      "sensor": {
+        "fovDeg": 20,
+        "rangeMeters": 3000
+      }
+    },
+    {
+      "uid": "gotak-austin-helo02",
+      "callsign": "HELO02",
+      "type": "a-f-A-M-H",
+      "hae": 350,
+      "orbit": {
+        "centerLat": 30.2747,
+        "centerLon": -97.7404,
+        "radiusMeters": 800,
+        "speedKts": 68,
+        "clockwise": true,
+        "initialBearingDeg": 180
+      },
+      "sensor": {
+        "fovDeg": 20,
+        "rangeMeters": 3000
+      }
+    },
+    {
+      "uid": "gotak-austin-uas-hover",
+      "callsign": "SCAN1",
+      "type": "a-f-A-M-H-Q",
+      "lat": 30.2783,
+      "lon": -97.7404,
+      "hae": 150,
+      "courseDeg": 0,
+      "speedMps": 0,
+      "sensor": {
+        "fovDeg": 25,
+        "rangeMeters": 1500
+      }
+    },
+    {
+      "uid": "gotak-austin-uas-racetrack",
+      "callsign": "RQ01",
+      "type": "a-f-A-M-F-Q",
+      "hae": 1800,
+      "raceTrack": {
+        "centerLat": 30.2837,
+        "centerLon": -97.7224,
+        "headingDeg": 60,
+        "legLengthMeters": 3000,
+        "turnRadiusMeters": 600,
+        "speedKts": 70,
+        "clockwise": true
+      },
+      "sensor": {
+        "fovDeg": 20,
+        "rangeMeters": 6000
+      }
+    },
+    {
+      "uid": "gotak-austin-arty1",
+      "callsign": "ARTY1",
+      "type": "a-f-G-U-C-F",
+      "lat": 30.2298,
+      "lon": -97.7404,
+      "hae": 190,
+      "courseDeg": 0,
+      "speedMps": 0
+    },
+    {
+      "uid": "gotak-austin-armor1",
+      "callsign": "ARMOR1",
+      "type": "a-f-G-U-C-A",
+      "lat": 30.2493,
+      "lon": -97.711,
+      "hae": 190,
+      "courseDeg": 45,
+      "speedMps": 8
+    },
+    {
+      "uid": "gotak-austin-inf1",
+      "callsign": "INF1",
+      "type": "a-f-G-U-C-I",
+      "lat": 30.2525,
+      "lon": -97.7662,
+      "hae": 190,
+      "courseDeg": 45,
+      "speedMps": 1.4
+    }
+  ]
+}

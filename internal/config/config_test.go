@@ -64,6 +64,35 @@ func TestParseFlags_MissingPassword(t *testing.T) {
 	}
 }
 
+func TestParseFlags_ScenarioPathIsOptional(t *testing.T) {
+	args := []string{"-server", "192.168.1.50", "-username", "alice", "-password", "s3cret"}
+
+	cfg, err := ParseFlags(args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.ScenarioPath != "" {
+		t.Errorf("ScenarioPath = %q, want empty when not provided", cfg.ScenarioPath)
+	}
+}
+
+func TestParseFlags_ScenarioPathFromFlag(t *testing.T) {
+	args := []string{
+		"-server", "192.168.1.50",
+		"-username", "alice",
+		"-password", "s3cret",
+		"-scenario", "scenarios/austin-capitol.json",
+	}
+
+	cfg, err := ParseFlags(args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.ScenarioPath != "scenarios/austin-capitol.json" {
+		t.Errorf("ScenarioPath = %q, want %q", cfg.ScenarioPath, "scenarios/austin-capitol.json")
+	}
+}
+
 func TestParseFlags_MissingAllRequiredFields(t *testing.T) {
 	_, err := ParseFlags([]string{})
 	if err == nil {

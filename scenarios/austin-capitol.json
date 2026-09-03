@@ -1,0 +1,33 @@
+{
+  "tickIntervalSeconds": 2,
+  "tracks": [
+    {
+      "uid": "gotak-austin-eagle01",
+      "callsign": "EAGLE01",
+      "type": "a-f-A",
+      "lat": 30.2747,
+      "lon": -97.76,
+      "hae": 1500,
+      "courseDeg": 90,
+      "speedKts": 233,
+      "sensor": {
+        "fovDeg": 30,
+        "rangeMeters": 8000
+      }
+    },
+    {
+      "uid": "gotak-austin-eagle02",
+      "callsign": "EAGLE02",
+      "type": "a-f-A",
+      "lat": 30.26,
+      "lon": -97.7404,
+      "hae": 2000,
+      "courseDeg": 0,
+      "speedKts": 194,
+      "sensor": {
+        "fovDeg": 30,
+        "rangeMeters": 8000
+      }
+    }
+  ]
+}

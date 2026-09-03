@@ -17,15 +17,16 @@ const defaultTickIntervalSeconds = 2.0
 // set, in which case Lat/Lon/CourseDeg/SpeedMPS are ignored — the
 // starting position and heading are derived from the orbit instead).
 type TrackConfig struct {
-	UID       string       `json:"uid"`
-	Callsign  string       `json:"callsign"`
-	Type      string       `json:"type,omitempty"`
-	Lat       float64      `json:"lat,omitempty"`
-	Lon       float64      `json:"lon,omitempty"`
-	HAE       float64      `json:"hae,omitempty"`
-	CourseDeg float64      `json:"courseDeg,omitempty"`
-	SpeedMPS  float64      `json:"speedMps,omitempty"`
-	Orbit     *OrbitConfig `json:"orbit,omitempty"`
+	UID       string        `json:"uid"`
+	Callsign  string        `json:"callsign"`
+	Type      string        `json:"type,omitempty"`
+	Lat       float64       `json:"lat,omitempty"`
+	Lon       float64       `json:"lon,omitempty"`
+	HAE       float64       `json:"hae,omitempty"`
+	CourseDeg float64       `json:"courseDeg,omitempty"`
+	SpeedMPS  float64       `json:"speedMps,omitempty"`
+	Orbit     *OrbitConfig  `json:"orbit,omitempty"`
+	Sensor    *SensorConfig `json:"sensor,omitempty"`
 }
 
 // OrbitConfig describes a track looping at a fixed radius and speed
@@ -37,6 +38,15 @@ type OrbitConfig struct {
 	SpeedMPS          float64 `json:"speedMps"`
 	Clockwise         bool    `json:"clockwise,omitempty"`
 	InitialBearingDeg float64 `json:"initialBearingDeg,omitempty"`
+}
+
+// SensorConfig describes a track's steerable sensor field of view, kept
+// aligned with the track's current direction of travel plus an optional
+// offset (e.g. a side-looking sensor).
+type SensorConfig struct {
+	FOVDeg           float64 `json:"fovDeg"`
+	RangeMeters      float64 `json:"rangeMeters"`
+	AzimuthOffsetDeg float64 `json:"azimuthOffsetDeg,omitempty"`
 }
 
 // Scenario describes a full simulation run: how often to send position
@@ -92,6 +102,15 @@ func Parse(data []byte) (Scenario, error) {
 			}
 			if tr.Orbit.SpeedMPS <= 0 {
 				return Scenario{}, fmt.Errorf("scenario: track %q: orbit speedMps must be positive", tr.UID)
+			}
+		}
+
+		if tr.Sensor != nil {
+			if tr.Sensor.FOVDeg <= 0 {
+				return Scenario{}, fmt.Errorf("scenario: track %q: sensor fovDeg must be positive", tr.UID)
+			}
+			if tr.Sensor.RangeMeters <= 0 {
+				return Scenario{}, fmt.Errorf("scenario: track %q: sensor rangeMeters must be positive", tr.UID)
 			}
 		}
 	}

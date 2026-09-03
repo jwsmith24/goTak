@@ -20,6 +20,7 @@ type Track struct {
 	Callsign string
 	Type     string // CoT type; empty defaults to a friendly air track
 	State    TrackState
+	Sensor   *cot.SensorFOV // optional; nil omits the sensor detail
 }
 
 // Run advances every track's position by interval on each tick received
@@ -45,6 +46,7 @@ func Run(ctx context.Context, tracks []*Track, ticks <-chan time.Time, interval 
 					CourseDeg: tr.State.CourseDeg,
 					SpeedMPS:  tr.State.SpeedMPS,
 					Time:      now,
+					Sensor:    tr.Sensor,
 				}.BuildEvent()
 				if err != nil {
 					return err

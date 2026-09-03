@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/jwsmith24/goTak/internal/config"
+	"github.com/jwsmith24/goTak/internal/cot"
 	"github.com/jwsmith24/goTak/internal/enroll"
 	"github.com/jwsmith24/goTak/internal/scenario"
 	"github.com/jwsmith24/goTak/internal/sim"
@@ -64,11 +65,21 @@ func loadTracks(scenarioPath string) ([]*sim.Track, time.Duration, error) {
 			}
 		}
 
+		var sensor *cot.SensorFOV
+		if tc.Sensor != nil {
+			sensor = &cot.SensorFOV{
+				FOVDeg:           tc.Sensor.FOVDeg,
+				RangeMeters:      tc.Sensor.RangeMeters,
+				AzimuthOffsetDeg: tc.Sensor.AzimuthOffsetDeg,
+			}
+		}
+
 		tracks[i] = &sim.Track{
 			UID:      tc.UID,
 			Callsign: tc.Callsign,
 			Type:     tc.Type,
 			State:    state,
+			Sensor:   sensor,
 		}
 	}
 	return tracks, sc.TickInterval(), nil

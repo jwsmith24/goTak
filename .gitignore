@@ -1,3 +1,4 @@
 /gotak
 *.test
 .env
+.idea

@@ -134,7 +134,7 @@ func main() {
 	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()
 
-	fmt.Printf("Simulating %d air track(s), updating every %s. Press Ctrl+C to stop.\n", len(tracks), tickInterval)
+	fmt.Printf("Simulating %d track(s), updating every %s. Press Ctrl+C to stop.\n", len(tracks), tickInterval)
 
 	if err := sim.Run(ctx, tracks, ticker.C, tickInterval, sender); err != nil && ctx.Err() == nil {
 		fmt.Fprintln(os.Stderr, "gotak: simulation stopped:", err)

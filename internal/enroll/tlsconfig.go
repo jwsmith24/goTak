@@ -25,14 +25,16 @@ type certificateConfigXML struct {
 }
 
 // FetchTLSConfig retrieves the CSR subject configuration from baseURL
-// (e.g. "https://192.168.1.50:8446"). The endpoint requires no
-// authentication and is queried before any trust is established with the
-// server.
-func FetchTLSConfig(ctx context.Context, httpClient *http.Client, baseURL string) (TLSConfig, error) {
+// (e.g. "https://192.168.1.50:8446"). Some TAK Server deployments gate
+// this endpoint behind the same username/password used for enrollment
+// even though no client certificate exists yet, so credentials are sent
+// here as well.
+func FetchTLSConfig(ctx context.Context, httpClient *http.Client, baseURL, username, password string) (TLSConfig, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, baseURL+"/Marti/api/tls/config", nil)
 	if err != nil {
 		return TLSConfig{}, err
 	}
+	req.SetBasicAuth(username, password)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -40,6 +42,9 @@ func FetchTLSConfig(ctx context.Context, httpClient *http.Client, baseURL string
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		return TLSConfig{}, fmt.Errorf("enroll: fetching TLS config: authentication failed for user %q", username)
+	}
 	if resp.StatusCode != http.StatusOK {
 		return TLSConfig{}, fmt.Errorf("enroll: fetching TLS config: unexpected status %d", resp.StatusCode)
 	}

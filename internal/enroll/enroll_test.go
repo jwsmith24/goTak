@@ -15,6 +15,11 @@ func newFakeTAKServer(t *testing.T, username, password string) *httptest.Server 
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/Marti/api/tls/config", func(w http.ResponseWriter, r *http.Request) {
+		gotUser, gotPass, ok := r.BasicAuth()
+		if !ok || gotUser != username || gotPass != password {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
 		_, _ = w.Write([]byte(`<ns2:certificateConfig xmlns="http://bbn.com/marti/xml/config" xmlns:ns2="com.bbn.marti.config">` +
 			`<nameEntries><nameEntry name="O" value="TAK"/><nameEntry name="OU" value="TAK"/></nameEntries>` +
 			`</ns2:certificateConfig>`))

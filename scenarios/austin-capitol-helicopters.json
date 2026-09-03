@@ -10,7 +10,7 @@
         "centerLat": 30.2747,
         "centerLon": -97.7404,
         "radiusMeters": 800,
-        "speedMps": 35,
+        "speedKts": 68,
         "clockwise": true,
         "initialBearingDeg": 0
       },
@@ -28,7 +28,7 @@
         "centerLat": 30.2747,
         "centerLon": -97.7404,
         "radiusMeters": 800,
-        "speedMps": 35,
+        "speedKts": 68,
         "clockwise": true,
         "initialBearingDeg": 180
       },

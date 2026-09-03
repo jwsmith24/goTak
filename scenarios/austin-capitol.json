@@ -9,7 +9,7 @@
       "lon": -97.76,
       "hae": 1500,
       "courseDeg": 90,
-      "speedMps": 120,
+      "speedKts": 233,
       "sensor": {
         "fovDeg": 30,
         "rangeMeters": 8000
@@ -23,7 +23,7 @@
       "lon": -97.7404,
       "hae": 2000,
       "courseDeg": 0,
-      "speedMps": 100,
+      "speedKts": 194,
       "sensor": {
         "fovDeg": 30,
         "rangeMeters": 8000

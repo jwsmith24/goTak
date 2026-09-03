@@ -91,8 +91,10 @@ update them:
 - `type` is the CoT type (e.g. `a-f-A` for friendly air); defaults to
   `a-f-A` when omitted.
 - `lat`/`lon` are decimal degrees; `hae` is height above the ellipsoid in
-  meters; `courseDeg` is true course in degrees clockwise from north;
-  `speedMps` is ground speed in meters/second.
+  meters; `courseDeg` is true course in degrees clockwise from north.
+- Speed is `speedMps` (meters/second) or `speedKts` (knots) — give one or
+  the other, not both; `speedKts` is converted to meters/second when the
+  file is loaded.
 - `tickIntervalSeconds` controls how often every track's position updates;
   defaults to 2 seconds when omitted.
 
@@ -129,8 +131,8 @@ course by giving it an `orbit` object instead of `lat`/`lon`/`courseDeg`/
 ```
 
 - `centerLat`/`centerLon` are the orbit's center point; `radiusMeters` is
-  the orbit radius; `speedMps` is the tangential ground speed (both must
-  be positive).
+  the orbit radius. Tangential ground speed is `speedMps` or `speedKts`
+  (give one or the other); both radius and speed must be positive.
 - `clockwise` sets rotation direction (default `false`, counterclockwise).
 - `initialBearingDeg` places the track's starting position on the circle,
   as a compass bearing from the center (default `0`, due north of center).

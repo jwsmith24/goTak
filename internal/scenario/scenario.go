@@ -11,6 +11,12 @@ import (
 
 const defaultTickIntervalSeconds = 2.0
 
+// knotsToMPS converts knots to meters/second using the international
+// definition of the nautical mile (1852 meters).
+func knotsToMPS(knots float64) float64 {
+	return knots * 1852.0 / 3600.0
+}
+
 // TrackConfig describes one track's callsign, CoT type, and starting
 // kinematic state. A track either flies a straight course (Lat/Lon/
 // CourseDeg/SpeedMPS, Orbit nil) or loops around a fixed point (Orbit
@@ -25,6 +31,7 @@ type TrackConfig struct {
 	HAE       float64       `json:"hae,omitempty"`
 	CourseDeg float64       `json:"courseDeg,omitempty"`
 	SpeedMPS  float64       `json:"speedMps,omitempty"`
+	SpeedKts  float64       `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
 	Orbit     *OrbitConfig  `json:"orbit,omitempty"`
 	Sensor    *SensorConfig `json:"sensor,omitempty"`
 }
@@ -35,7 +42,8 @@ type OrbitConfig struct {
 	CenterLat         float64 `json:"centerLat"`
 	CenterLon         float64 `json:"centerLon"`
 	RadiusMeters      float64 `json:"radiusMeters"`
-	SpeedMPS          float64 `json:"speedMps"`
+	SpeedMPS          float64 `json:"speedMps,omitempty"`
+	SpeedKts          float64 `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
 	Clockwise         bool    `json:"clockwise,omitempty"`
 	InitialBearingDeg float64 `json:"initialBearingDeg,omitempty"`
 }
@@ -83,7 +91,9 @@ func Parse(data []byte) (Scenario, error) {
 	}
 
 	seen := make(map[string]bool, len(sc.Tracks))
-	for i, tr := range sc.Tracks {
+	for i := range sc.Tracks {
+		tr := &sc.Tracks[i]
+
 		if tr.UID == "" {
 			return Scenario{}, fmt.Errorf("scenario: track %d: uid is required", i)
 		}
@@ -96,9 +106,22 @@ func Parse(data []byte) (Scenario, error) {
 			return Scenario{}, fmt.Errorf("scenario: track %q: callsign is required", tr.UID)
 		}
 
+		if tr.SpeedMPS != 0 && tr.SpeedKts != 0 {
+			return Scenario{}, fmt.Errorf("scenario: track %q: specify only one of speedMps or speedKts", tr.UID)
+		}
+		if tr.SpeedKts != 0 {
+			tr.SpeedMPS = knotsToMPS(tr.SpeedKts)
+		}
+
 		if tr.Orbit != nil {
 			if tr.Orbit.RadiusMeters <= 0 {
 				return Scenario{}, fmt.Errorf("scenario: track %q: orbit radiusMeters must be positive", tr.UID)
+			}
+			if tr.Orbit.SpeedMPS != 0 && tr.Orbit.SpeedKts != 0 {
+				return Scenario{}, fmt.Errorf("scenario: track %q: specify only one of orbit speedMps or speedKts", tr.UID)
+			}
+			if tr.Orbit.SpeedKts != 0 {
+				tr.Orbit.SpeedMPS = knotsToMPS(tr.Orbit.SpeedKts)
 			}
 			if tr.Orbit.SpeedMPS <= 0 {
 				return Scenario{}, fmt.Errorf("scenario: track %q: orbit speedMps must be positive", tr.UID)

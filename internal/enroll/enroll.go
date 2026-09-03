@@ -38,7 +38,7 @@ func InsecureHTTPClient() *http.Client {
 // CSR for username, and submits it for signing using username/password
 // authentication.
 func Enroll(ctx context.Context, httpClient *http.Client, baseURL, username, password string) (EnrollmentResult, error) {
-	tlsConfig, err := FetchTLSConfig(ctx, httpClient, baseURL)
+	tlsConfig, err := FetchTLSConfig(ctx, httpClient, baseURL, username, password)
 	if err != nil {
 		return EnrollmentResult{}, err
 	}

@@ -13,6 +13,10 @@
         "speedMps": 35,
         "clockwise": true,
         "initialBearingDeg": 0
+      },
+      "sensor": {
+        "fovDeg": 20,
+        "rangeMeters": 3000
       }
     },
     {
@@ -27,6 +31,10 @@
         "speedMps": 35,
         "clockwise": true,
         "initialBearingDeg": 180
+      },
+      "sensor": {
+        "fovDeg": 20,
+        "rangeMeters": 3000
       }
     }
   ]

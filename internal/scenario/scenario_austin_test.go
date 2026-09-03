@@ -18,6 +18,9 @@ func TestLoad_AustinCapitolScenario(t *testing.T) {
 		if tr.UID == "" || tr.Callsign == "" {
 			t.Errorf("track %+v missing uid or callsign", tr)
 		}
+		if tr.Sensor == nil {
+			t.Errorf("track %q: Sensor = nil, want a populated sensor", tr.UID)
+		}
 	}
 }
 
@@ -39,6 +42,9 @@ func TestLoad_AustinCapitolHelicoptersScenario(t *testing.T) {
 		}
 		if tr.Orbit == nil {
 			t.Errorf("track %q: Orbit = nil, want a populated orbit", tr.UID)
+		}
+		if tr.Sensor == nil {
+			t.Errorf("track %q: Sensor = nil, want a populated sensor", tr.UID)
 		}
 	}
 

@@ -147,6 +147,31 @@ go run ./cmd/gotak -server 192.168.1.50 -username dev -password devpass \
   -scenario scenarios/austin-capitol-helicopters.json
 ```
 
+#### Sensor field of view
+
+A track can carry a steerable sensor's field of view by adding a
+`sensor` object:
+
+```json
+{
+  "sensor": {
+    "fovDeg": 30,
+    "rangeMeters": 8000,
+    "azimuthOffsetDeg": 0
+  }
+}
+```
+
+This renders as a CoT `<sensor azimuth fov range/>` detail element
+(per the standard CoT Sensor schema) that ATAK/WinTAK draw as a
+field-of-view wedge on the map. `fovDeg` (horizontal field of view) and
+`rangeMeters` must both be positive. The sensor's azimuth is recomputed
+every tick from the track's *current* course plus `azimuthOffsetDeg`
+(default `0`, straight ahead), so the FOV wedge stays pointed in the
+track's direction of travel as it turns — including around an orbit,
+where the heading is constantly changing. Both shipped scenarios include
+a forward-looking sensor on every track.
+
 ### Using a .env file instead of flags
 
 Instead of passing flags every time, copy `.env.example` to `.env` in the

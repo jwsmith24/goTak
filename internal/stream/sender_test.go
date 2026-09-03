@@ -153,6 +153,168 @@ func TestSend_DeliversEventOverMTLSConnection(t *testing.T) {
 	}
 }
 
+// chainedTestPKI models what real TAK Server enrollment often returns:
+// a client certificate issued by an intermediate CA, itself issued by a
+// root CA. The server's trust store only holds the root, so the client
+// must present the intermediate during the handshake for verification to
+// succeed.
+type chainedTestPKI struct {
+	rootCertPEM         []byte
+	serverCertPEM       []byte
+	serverKeyPEM        []byte
+	clientLeafCertPEM   []byte
+	clientKeyPEM        []byte
+	intermediateCertPEM []byte
+}
+
+func newChainedTestPKI(t *testing.T) chainedTestPKI {
+	t.Helper()
+
+	newCA := func(commonName string, parentCert *x509.Certificate, parentKey *ecdsa.PrivateKey) (*x509.Certificate, *ecdsa.PrivateKey, []byte) {
+		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatalf("generating key for %s: %v", commonName, err)
+		}
+		template := x509.Certificate{
+			SerialNumber:          big.NewInt(time.Now().UnixNano()),
+			Subject:               pkix.Name{CommonName: commonName},
+			NotBefore:             time.Now().Add(-time.Hour),
+			NotAfter:              time.Now().Add(time.Hour),
+			IsCA:                  true,
+			KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+			BasicConstraintsValid: true,
+		}
+		signerCert, signerKey := parentCert, parentKey
+		if signerCert == nil {
+			signerCert, signerKey = &template, key // self-signed root
+		}
+		der, err := x509.CreateCertificate(rand.Reader, &template, signerCert, &key.PublicKey, signerKey)
+		if err != nil {
+			t.Fatalf("creating CA certificate for %s: %v", commonName, err)
+		}
+		cert, err := x509.ParseCertificate(der)
+		if err != nil {
+			t.Fatalf("parsing CA certificate for %s: %v", commonName, err)
+		}
+		return cert, key, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+	}
+
+	rootCert, rootKey, rootCertPEM := newCA("gotak-test-root-ca", nil, nil)
+	intermediateCert, intermediateKey, intermediateCertPEM := newCA("gotak-test-intermediate-ca", rootCert, rootKey)
+
+	issue := func(commonName string, signerCert *x509.Certificate, signerKey *ecdsa.PrivateKey, ips []net.IP, extKeyUsage []x509.ExtKeyUsage) ([]byte, []byte) {
+		key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+		if err != nil {
+			t.Fatalf("generating key for %s: %v", commonName, err)
+		}
+		template := x509.Certificate{
+			SerialNumber: big.NewInt(time.Now().UnixNano()),
+			Subject:      pkix.Name{CommonName: commonName},
+			NotBefore:    time.Now().Add(-time.Hour),
+			NotAfter:     time.Now().Add(time.Hour),
+			KeyUsage:     x509.KeyUsageDigitalSignature,
+			ExtKeyUsage:  extKeyUsage,
+			IPAddresses:  ips,
+		}
+		der, err := x509.CreateCertificate(rand.Reader, &template, signerCert, &key.PublicKey, signerKey)
+		if err != nil {
+			t.Fatalf("creating certificate for %s: %v", commonName, err)
+		}
+		keyDER, err := x509.MarshalECPrivateKey(key)
+		if err != nil {
+			t.Fatalf("marshaling key for %s: %v", commonName, err)
+		}
+		certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+		keyPEM := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: keyDER})
+		return certPEM, keyPEM
+	}
+
+	serverCertPEM, serverKeyPEM := issue("localhost", rootCert, rootKey, []net.IP{net.ParseIP("127.0.0.1")}, []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth})
+	clientLeafCertPEM, clientKeyPEM := issue("dev", intermediateCert, intermediateKey, nil, []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth})
+
+	return chainedTestPKI{
+		rootCertPEM:         rootCertPEM,
+		serverCertPEM:       serverCertPEM,
+		serverKeyPEM:        serverKeyPEM,
+		clientLeafCertPEM:   clientLeafCertPEM,
+		clientKeyPEM:        clientKeyPEM,
+		intermediateCertPEM: intermediateCertPEM,
+	}
+}
+
+func startMTLSListenerTrustingOnly(t *testing.T, rootCertPEM, serverCertPEM, serverKeyPEM []byte) (addr string, received chan []byte) {
+	t.Helper()
+
+	caPool := x509.NewCertPool()
+	if !caPool.AppendCertsFromPEM(rootCertPEM) {
+		t.Fatal("failed to add root CA cert to pool")
+	}
+
+	serverCert, err := tls.X509KeyPair(serverCertPEM, serverKeyPEM)
+	if err != nil {
+		t.Fatalf("loading server key pair: %v", err)
+	}
+
+	listener, err := tls.Listen("tcp", "127.0.0.1:0", &tls.Config{
+		Certificates: []tls.Certificate{serverCert},
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		ClientCAs:    caPool,
+	})
+	if err != nil {
+		t.Fatalf("starting TLS listener: %v", err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+
+	received = make(chan []byte, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		buf := make([]byte, 4096)
+		n, err := conn.Read(buf)
+		if err != nil {
+			return
+		}
+		received <- buf[:n]
+	}()
+
+	return listener.Addr().String(), received
+}
+
+func TestDial_PresentsIntermediateCACertsSoServerCanVerifyClient(t *testing.T) {
+	pki := newChainedTestPKI(t)
+	// The server's trust store holds only the root, mirroring a real TAK
+	// Server: the client must supply the intermediate itself.
+	addr, received := startMTLSListenerTrustingOnly(t, pki.rootCertPEM, pki.serverCertPEM, pki.serverKeyPEM)
+
+	// Enrollment returns the whole CA chain (intermediate and root) as
+	// separate PEM blocks, exactly like enroll.SignResult.CACertsPEM.
+	caChain := [][]byte{pki.intermediateCertPEM, pki.rootCertPEM}
+
+	sender, err := Dial(context.Background(), addr, pki.clientLeafCertPEM, pki.clientKeyPEM, caChain)
+	if err != nil {
+		t.Fatalf("Dial failed: %v", err)
+	}
+	defer sender.Close()
+
+	_ = sender.conn.SetDeadline(time.Now().Add(2 * time.Second))
+	payload := []byte(`<event uid="gotak-sim-1"/>`)
+	if err := sender.Send(payload); err != nil {
+		t.Fatalf("Send failed: %v", err)
+	}
+
+	select {
+	case got := <-received:
+		if string(got) != string(payload) {
+			t.Errorf("server received %q, want %q", got, payload)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for server to receive event; the server likely rejected the client's certificate chain")
+	}
+}
+
 func TestDial_FailsWithoutValidClientCert(t *testing.T) {
 	pki := newTestPKI(t)
 	addr, _ := startMTLSListener(t, pki)

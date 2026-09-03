@@ -99,6 +99,36 @@
       "hae": 190,
       "courseDeg": 45,
       "speedMps": 1.4
+    },
+    {
+      "uid": "gotak-austin-enyInf1",
+      "callsign": "TALLY1",
+      "type": "a-h-G-U-C-I",
+      "lat": 30.2776,
+      "lon": -97.7402,
+      "hae": 0,
+      "courseDeg": 45,
+      "speedMps": 0
+    },
+    {
+      "uid": "gotak-austin-enyInf2",
+      "callsign": "TALLY2",
+      "type": "a-h-G-U-C-I",
+      "lat": 30.2776,
+      "lon": -97.7408,
+      "hae": 0,
+      "courseDeg": 45,
+      "speedMps": 0
+    },
+    {
+      "uid": "gotak-austin-enyInf3",
+      "callsign": "TALLY3",
+      "type": "a-h-G-U-C-I",
+      "lat": 30.2776,
+      "lon": -97.7416,
+      "hae": 0,
+      "courseDeg": 45,
+      "speedMps": 0
     }
-  ]
+    ]
 }

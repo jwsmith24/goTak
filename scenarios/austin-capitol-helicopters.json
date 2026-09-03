@@ -1,0 +1,33 @@
+{
+  "tickIntervalSeconds": 2,
+  "tracks": [
+    {
+      "uid": "gotak-austin-helo01",
+      "callsign": "HELO01",
+      "type": "a-f-A-M-H",
+      "hae": 300,
+      "orbit": {
+        "centerLat": 30.2747,
+        "centerLon": -97.7404,
+        "radiusMeters": 800,
+        "speedMps": 35,
+        "clockwise": true,
+        "initialBearingDeg": 0
+      }
+    },
+    {
+      "uid": "gotak-austin-helo02",
+      "callsign": "HELO02",
+      "type": "a-f-A-M-H",
+      "hae": 350,
+      "orbit": {
+        "centerLat": 30.2747,
+        "centerLon": -97.7404,
+        "radiusMeters": 800,
+        "speedMps": 35,
+        "clockwise": true,
+        "initialBearingDeg": 180
+      }
+    }
+  ]
+}

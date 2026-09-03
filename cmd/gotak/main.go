@@ -47,14 +47,28 @@ func loadTracks(scenarioPath string) ([]*sim.Track, time.Duration, error) {
 
 	tracks := make([]*sim.Track, len(sc.Tracks))
 	for i, tc := range sc.Tracks {
+		var state sim.TrackState
+		if tc.Orbit != nil {
+			state = sim.NewOrbitTrackState(tc.HAE, sim.OrbitState{
+				CenterLat:            tc.Orbit.CenterLat,
+				CenterLon:            tc.Orbit.CenterLon,
+				RadiusMeters:         tc.Orbit.RadiusMeters,
+				SpeedMPS:             tc.Orbit.SpeedMPS,
+				Clockwise:            tc.Orbit.Clockwise,
+				BearingFromCenterDeg: tc.Orbit.InitialBearingDeg,
+			})
+		} else {
+			state = sim.TrackState{
+				Lat: tc.Lat, Lon: tc.Lon, HAE: tc.HAE,
+				CourseDeg: tc.CourseDeg, SpeedMPS: tc.SpeedMPS,
+			}
+		}
+
 		tracks[i] = &sim.Track{
 			UID:      tc.UID,
 			Callsign: tc.Callsign,
 			Type:     tc.Type,
-			State: sim.TrackState{
-				Lat: tc.Lat, Lon: tc.Lon, HAE: tc.HAE,
-				CourseDeg: tc.CourseDeg, SpeedMPS: tc.SpeedMPS,
-			},
+			State:    state,
 		}
 	}
 	return tracks, sc.TickInterval(), nil

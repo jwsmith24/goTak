@@ -105,6 +105,48 @@ go run ./cmd/gotak -server 192.168.1.50 -username dev -password devpass \
   -scenario scenarios/austin-capitol.json
 ```
 
+#### Orbiting tracks
+
+A track can loop around a fixed point instead of flying a straight
+course by giving it an `orbit` object instead of `lat`/`lon`/`courseDeg`/
+`speedMps`:
+
+```json
+{
+  "uid": "gotak-austin-helo01",
+  "callsign": "HELO01",
+  "type": "a-f-A-M-H",
+  "hae": 300,
+  "orbit": {
+    "centerLat": 30.2747,
+    "centerLon": -97.7404,
+    "radiusMeters": 800,
+    "speedMps": 35,
+    "clockwise": true,
+    "initialBearingDeg": 0
+  }
+}
+```
+
+- `centerLat`/`centerLon` are the orbit's center point; `radiusMeters` is
+  the orbit radius; `speedMps` is the tangential ground speed (both must
+  be positive).
+- `clockwise` sets rotation direction (default `false`, counterclockwise).
+- `initialBearingDeg` places the track's starting position on the circle,
+  as a compass bearing from the center (default `0`, due north of center).
+- The track's reported course and speed update every tick to reflect its
+  current heading around the circle.
+
+[`scenarios/austin-capitol-helicopters.json`](scenarios/austin-capitol-helicopters.json)
+ships two rotary-wing helicopters (`HELO01`, `HELO02`) orbiting the
+Capitol on the same circle, 180° offset from each other so they stay on
+opposite sides of the loop, at slightly different altitudes:
+
+```sh
+go run ./cmd/gotak -server 192.168.1.50 -username dev -password devpass \
+  -scenario scenarios/austin-capitol-helicopters.json
+```
+
 ### Using a .env file instead of flags
 
 Instead of passing flags every time, copy `.env.example` to `.env` in the

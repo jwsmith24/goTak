@@ -12,16 +12,31 @@ import (
 const defaultTickIntervalSeconds = 2.0
 
 // TrackConfig describes one track's callsign, CoT type, and starting
-// kinematic state.
+// kinematic state. A track either flies a straight course (Lat/Lon/
+// CourseDeg/SpeedMPS, Orbit nil) or loops around a fixed point (Orbit
+// set, in which case Lat/Lon/CourseDeg/SpeedMPS are ignored — the
+// starting position and heading are derived from the orbit instead).
 type TrackConfig struct {
-	UID       string  `json:"uid"`
-	Callsign  string  `json:"callsign"`
-	Type      string  `json:"type,omitempty"`
-	Lat       float64 `json:"lat"`
-	Lon       float64 `json:"lon"`
-	HAE       float64 `json:"hae,omitempty"`
-	CourseDeg float64 `json:"courseDeg,omitempty"`
-	SpeedMPS  float64 `json:"speedMps,omitempty"`
+	UID       string       `json:"uid"`
+	Callsign  string       `json:"callsign"`
+	Type      string       `json:"type,omitempty"`
+	Lat       float64      `json:"lat,omitempty"`
+	Lon       float64      `json:"lon,omitempty"`
+	HAE       float64      `json:"hae,omitempty"`
+	CourseDeg float64      `json:"courseDeg,omitempty"`
+	SpeedMPS  float64      `json:"speedMps,omitempty"`
+	Orbit     *OrbitConfig `json:"orbit,omitempty"`
+}
+
+// OrbitConfig describes a track looping at a fixed radius and speed
+// around a center point.
+type OrbitConfig struct {
+	CenterLat         float64 `json:"centerLat"`
+	CenterLon         float64 `json:"centerLon"`
+	RadiusMeters      float64 `json:"radiusMeters"`
+	SpeedMPS          float64 `json:"speedMps"`
+	Clockwise         bool    `json:"clockwise,omitempty"`
+	InitialBearingDeg float64 `json:"initialBearingDeg,omitempty"`
 }
 
 // Scenario describes a full simulation run: how often to send position
@@ -69,6 +84,15 @@ func Parse(data []byte) (Scenario, error) {
 
 		if tr.Callsign == "" {
 			return Scenario{}, fmt.Errorf("scenario: track %q: callsign is required", tr.UID)
+		}
+
+		if tr.Orbit != nil {
+			if tr.Orbit.RadiusMeters <= 0 {
+				return Scenario{}, fmt.Errorf("scenario: track %q: orbit radiusMeters must be positive", tr.UID)
+			}
+			if tr.Orbit.SpeedMPS <= 0 {
+				return Scenario{}, fmt.Errorf("scenario: track %q: orbit speedMps must be positive", tr.UID)
+			}
 		}
 	}
 

@@ -139,10 +139,54 @@ course by giving it an `orbit` object instead of `lat`/`lon`/`courseDeg`/
 - The track's reported course and speed update every tick to reflect its
   current heading around the circle.
 
+#### Race-track (stadium) patterns
+
+A track can fly a stadium-shaped "race track" pattern — two straight
+legs joined by two 180-degree turns, the classic ISR loiter pattern
+flown by fixed-wing UAS — by giving it a `raceTrack` object instead of
+`lat`/`lon`/`courseDeg`/`speedMps`:
+
+```json
+{
+  "uid": "gotak-austin-uas-racetrack",
+  "callsign": "RQ01",
+  "type": "a-f-A-M-F-Q",
+  "hae": 1800,
+  "raceTrack": {
+    "centerLat": 30.2837,
+    "centerLon": -97.7224,
+    "headingDeg": 60,
+    "legLengthMeters": 3000,
+    "turnRadiusMeters": 600,
+    "speedKts": 70,
+    "clockwise": true
+  }
+}
+```
+
+- `centerLat`/`centerLon` are the pattern's center point; `headingDeg` is
+  the compass heading of the two straight legs.
+- `legLengthMeters` (length of each straight leg) and `turnRadiusMeters`
+  (radius of each 180-degree turn) must both be positive.
+- Ground speed is `speedMps` or `speedKts` (give one or the other); must
+  be positive.
+- `clockwise` mirrors the pattern (default `false`).
+- The track's reported course updates every tick as it flies each leg
+  and turn.
+
 [`scenarios/austin-capitol-helicopters.json`](scenarios/austin-capitol-helicopters.json)
-ships two rotary-wing helicopters (`HELO01`, `HELO02`) orbiting the
-Capitol on the same circle, 180° offset from each other so they stay on
-opposite sides of the loop, at slightly different altitudes:
+ships a fuller composite scenario near the Capitol:
+
+- Two rotary-wing helicopters (`HELO01`, `HELO02`) orbiting the Capitol
+  on the same circle, 180° offset from each other so they stay on
+  opposite sides of the loop, at slightly different altitudes.
+- Two UAS: `SCAN1`, a small rotary-wing/VTOL UAS hovering in place
+  (`speedMps: 0`) just north of the Capitol, and `RQ01`, a fixed-wing UAS
+  flying a race-track loiter pattern a couple of kilometers out.
+- Three friendly ground units further out from the Capitol: an emplaced
+  field artillery battery (`ARTY1`, stationary), an armor element
+  (`ARMOR1`) moving cross-country, and an infantry element (`INF1`) on
+  foot.
 
 ```sh
 go run ./cmd/gotak -server 192.168.1.50 -username dev -password devpass \
@@ -171,8 +215,10 @@ field-of-view wedge on the map. `fovDeg` (horizontal field of view) and
 every tick from the track's *current* course plus `azimuthOffsetDeg`
 (default `0`, straight ahead), so the FOV wedge stays pointed in the
 track's direction of travel as it turns — including around an orbit,
-where the heading is constantly changing. Both shipped scenarios include
-a forward-looking sensor on every track.
+where the heading is constantly changing, and around a race-track
+pattern. Every air track in the shipped scenarios carries a
+forward-looking sensor; the ground units in
+`austin-capitol-helicopters.json` don't.
 
 ### Using a .env file instead of flags
 

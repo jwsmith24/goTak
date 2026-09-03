@@ -23,17 +23,18 @@ func knotsToMPS(knots float64) float64 {
 // set, in which case Lat/Lon/CourseDeg/SpeedMPS are ignored — the
 // starting position and heading are derived from the orbit instead).
 type TrackConfig struct {
-	UID       string        `json:"uid"`
-	Callsign  string        `json:"callsign"`
-	Type      string        `json:"type,omitempty"`
-	Lat       float64       `json:"lat,omitempty"`
-	Lon       float64       `json:"lon,omitempty"`
-	HAE       float64       `json:"hae,omitempty"`
-	CourseDeg float64       `json:"courseDeg,omitempty"`
-	SpeedMPS  float64       `json:"speedMps,omitempty"`
-	SpeedKts  float64       `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
-	Orbit     *OrbitConfig  `json:"orbit,omitempty"`
-	Sensor    *SensorConfig `json:"sensor,omitempty"`
+	UID       string           `json:"uid"`
+	Callsign  string           `json:"callsign"`
+	Type      string           `json:"type,omitempty"`
+	Lat       float64          `json:"lat,omitempty"`
+	Lon       float64          `json:"lon,omitempty"`
+	HAE       float64          `json:"hae,omitempty"`
+	CourseDeg float64          `json:"courseDeg,omitempty"`
+	SpeedMPS  float64          `json:"speedMps,omitempty"`
+	SpeedKts  float64          `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
+	Orbit     *OrbitConfig     `json:"orbit,omitempty"`
+	RaceTrack *RaceTrackConfig `json:"raceTrack,omitempty"`
+	Sensor    *SensorConfig    `json:"sensor,omitempty"`
 }
 
 // OrbitConfig describes a track looping at a fixed radius and speed
@@ -46,6 +47,20 @@ type OrbitConfig struct {
 	SpeedKts          float64 `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
 	Clockwise         bool    `json:"clockwise,omitempty"`
 	InitialBearingDeg float64 `json:"initialBearingDeg,omitempty"`
+}
+
+// RaceTrackConfig describes a track flying a stadium-shaped ("race
+// track") loiter pattern: two straight legs joined by two 180-degree
+// turns.
+type RaceTrackConfig struct {
+	CenterLat        float64 `json:"centerLat"`
+	CenterLon        float64 `json:"centerLon"`
+	HeadingDeg       float64 `json:"headingDeg,omitempty"`
+	LegLengthMeters  float64 `json:"legLengthMeters"`
+	TurnRadiusMeters float64 `json:"turnRadiusMeters"`
+	SpeedMPS         float64 `json:"speedMps,omitempty"`
+	SpeedKts         float64 `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
+	Clockwise        bool    `json:"clockwise,omitempty"`
 }
 
 // SensorConfig describes a track's steerable sensor field of view, kept
@@ -125,6 +140,24 @@ func Parse(data []byte) (Scenario, error) {
 			}
 			if tr.Orbit.SpeedMPS <= 0 {
 				return Scenario{}, fmt.Errorf("scenario: track %q: orbit speedMps must be positive", tr.UID)
+			}
+		}
+
+		if tr.RaceTrack != nil {
+			if tr.RaceTrack.LegLengthMeters <= 0 {
+				return Scenario{}, fmt.Errorf("scenario: track %q: raceTrack legLengthMeters must be positive", tr.UID)
+			}
+			if tr.RaceTrack.TurnRadiusMeters <= 0 {
+				return Scenario{}, fmt.Errorf("scenario: track %q: raceTrack turnRadiusMeters must be positive", tr.UID)
+			}
+			if tr.RaceTrack.SpeedMPS != 0 && tr.RaceTrack.SpeedKts != 0 {
+				return Scenario{}, fmt.Errorf("scenario: track %q: specify only one of raceTrack speedMps or speedKts", tr.UID)
+			}
+			if tr.RaceTrack.SpeedKts != 0 {
+				tr.RaceTrack.SpeedMPS = knotsToMPS(tr.RaceTrack.SpeedKts)
+			}
+			if tr.RaceTrack.SpeedMPS <= 0 {
+				return Scenario{}, fmt.Errorf("scenario: track %q: raceTrack speedMps must be positive", tr.UID)
 			}
 		}
 

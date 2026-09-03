@@ -49,7 +49,8 @@ func loadTracks(scenarioPath string) ([]*sim.Track, time.Duration, error) {
 	tracks := make([]*sim.Track, len(sc.Tracks))
 	for i, tc := range sc.Tracks {
 		var state sim.TrackState
-		if tc.Orbit != nil {
+		switch {
+		case tc.Orbit != nil:
 			state = sim.NewOrbitTrackState(tc.HAE, sim.OrbitState{
 				CenterLat:            tc.Orbit.CenterLat,
 				CenterLon:            tc.Orbit.CenterLon,
@@ -58,7 +59,17 @@ func loadTracks(scenarioPath string) ([]*sim.Track, time.Duration, error) {
 				Clockwise:            tc.Orbit.Clockwise,
 				BearingFromCenterDeg: tc.Orbit.InitialBearingDeg,
 			})
-		} else {
+		case tc.RaceTrack != nil:
+			state = sim.NewRaceTrackTrackState(tc.HAE, sim.RaceTrackState{
+				CenterLat:        tc.RaceTrack.CenterLat,
+				CenterLon:        tc.RaceTrack.CenterLon,
+				HeadingDeg:       tc.RaceTrack.HeadingDeg,
+				LegLengthMeters:  tc.RaceTrack.LegLengthMeters,
+				TurnRadiusMeters: tc.RaceTrack.TurnRadiusMeters,
+				SpeedMPS:         tc.RaceTrack.SpeedMPS,
+				Clockwise:        tc.RaceTrack.Clockwise,
+			})
+		default:
 			state = sim.TrackState{
 				Lat: tc.Lat, Lon: tc.Lon, HAE: tc.HAE,
 				CourseDeg: tc.CourseDeg, SpeedMPS: tc.SpeedMPS,

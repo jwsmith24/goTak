@@ -13,36 +13,45 @@ type EventSender interface {
 	Send(event []byte) error
 }
 
-// Run advances a track's position by interval on every tick received
-// from ticks, builds a CoT event for the new position, and sends it via
-// sender. It runs until ctx is cancelled or a send fails, returning the
+// Track is one simulated air track's identity and current kinematic
+// state.
+type Track struct {
+	UID      string
+	Callsign string
+	Type     string // CoT type; empty defaults to a friendly air track
+	State    TrackState
+}
+
+// Run advances every track's position by interval on each tick received
+// from ticks, builds a CoT event per track, and sends them via sender in
+// order. It runs until ctx is cancelled or a send fails, returning the
 // resulting error.
-func Run(ctx context.Context, uid, callsign string, initial TrackState, ticks <-chan time.Time, interval time.Duration, sender EventSender) error {
-	state := initial
+func Run(ctx context.Context, tracks []*Track, ticks <-chan time.Time, interval time.Duration, sender EventSender) error {
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case now := <-ticks:
-			state = state.Advance(interval)
+			for _, tr := range tracks {
+				tr.State = tr.State.Advance(interval)
 
-			track := cot.AirTrack{
-				UID:       uid,
-				Callsign:  callsign,
-				Lat:       state.Lat,
-				Lon:       state.Lon,
-				HAE:       state.HAE,
-				CourseDeg: state.CourseDeg,
-				SpeedMPS:  state.SpeedMPS,
-				Time:      now,
-			}
-
-			event, err := track.BuildEvent()
-			if err != nil {
-				return err
-			}
-			if err := sender.Send(event); err != nil {
-				return err
+				event, err := cot.AirTrack{
+					UID:       tr.UID,
+					Callsign:  tr.Callsign,
+					Type:      tr.Type,
+					Lat:       tr.State.Lat,
+					Lon:       tr.State.Lon,
+					HAE:       tr.State.HAE,
+					CourseDeg: tr.State.CourseDeg,
+					SpeedMPS:  tr.State.SpeedMPS,
+					Time:      now,
+				}.BuildEvent()
+				if err != nil {
+					return err
+				}
+				if err := sender.Send(event); err != nil {
+					return err
+				}
 			}
 		}
 	}

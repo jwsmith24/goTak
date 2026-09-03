@@ -52,6 +52,30 @@ go build -o gotak ./cmd/gotak
 
 All three are required; the app reports any that are missing.
 
+### Using a .env file instead of flags
+
+Instead of passing flags every time, copy `.env.example` to `.env` in the
+repository root and fill in your values:
+
+```sh
+cp .env.example .env
+```
+
+```
+GOTAK_SERVER=192.168.1.50
+GOTAK_USERNAME=dev
+GOTAK_PASSWORD=devpass
+```
+
+Then just run:
+
+```sh
+go run ./cmd/gotak
+```
+
+Any flag you do pass on the command line overrides the matching value from
+`.env`. `.env` is gitignored — never commit real credentials.
+
 ## Running the tests
 
 ```sh

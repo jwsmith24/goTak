@@ -6,6 +6,7 @@ package config
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -16,13 +17,37 @@ type Config struct {
 	Password      string
 }
 
-// ParseFlags parses args (excluding the program name) into a Config. It
-// returns an error naming every missing required field.
+// dotEnvPath is the env file ParseFlags looks for in the working
+// directory. It is optional: flags always take precedence, and a missing
+// file is not an error.
+const dotEnvPath = ".env"
+
+// Env file keys read as fallback values for the matching flag.
+const (
+	envServerKey   = "GOTAK_SERVER"
+	envUsernameKey = "GOTAK_USERNAME"
+	envPasswordKey = "GOTAK_PASSWORD"
+)
+
+// ParseFlags parses args (excluding the program name) into a Config,
+// falling back to a .env file (GOTAK_SERVER, GOTAK_USERNAME,
+// GOTAK_PASSWORD) in the working directory for any flag not given on the
+// command line. It returns an error naming every field still missing
+// once both sources are applied.
 func ParseFlags(args []string) (Config, error) {
+	return parseFlags(args, dotEnvPath)
+}
+
+func parseFlags(args []string, envFilePath string) (Config, error) {
+	envValues, err := LoadEnvFile(envFilePath)
+	if err != nil && !os.IsNotExist(err) {
+		return Config{}, fmt.Errorf("config: reading env file %s: %w", envFilePath, err)
+	}
+
 	fs := flag.NewFlagSet("gotak", flag.ContinueOnError)
-	server := fs.String("server", "", "TAK server IP address or hostname")
-	username := fs.String("username", "", "username for certificate enrollment")
-	password := fs.String("password", "", "password for certificate enrollment")
+	server := fs.String("server", envValues[envServerKey], "TAK server IP address or hostname")
+	username := fs.String("username", envValues[envUsernameKey], "username for certificate enrollment")
+	password := fs.String("password", envValues[envPasswordKey], "password for certificate enrollment")
 
 	if err := fs.Parse(args); err != nil {
 		return Config{}, err

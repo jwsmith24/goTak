@@ -10,8 +10,8 @@ const sensorTrackJSON = `{
 		{
 			"uid": "track-1",
 			"callsign": "EAGLE01",
-			"lat": 30.2747,
-			"lon": -97.76,
+			"offsetNorthMeters": 30.2747,
+			"offsetEastMeters": -97.76,
 			"courseDeg": 90,
 			"speedMps": 120,
 			"sensor": {
@@ -56,7 +56,7 @@ func TestParse_TrackWithoutSensorHasNilSensor(t *testing.T) {
 
 func TestParse_SensorRequiresPositiveFOV(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
-		"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2,
+		"uid": "t1", "callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2,
 		"sensor": {"fovDeg": 0, "rangeMeters": 5000}
 	}]}`))
 	if err == nil {
@@ -69,7 +69,7 @@ func TestParse_SensorRequiresPositiveFOV(t *testing.T) {
 
 func TestParse_SensorRequiresPositiveRange(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
-		"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2,
+		"uid": "t1", "callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2,
 		"sensor": {"fovDeg": 30, "rangeMeters": 0}
 	}]}`))
 	if err == nil {

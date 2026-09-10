@@ -15,8 +15,8 @@ const twoTrackJSON = `{
 			"uid": "track-1",
 			"callsign": "EAGLE01",
 			"type": "a-f-A",
-			"lat": 30.2747,
-			"lon": -97.76,
+			"offsetNorthMeters": 30.2747,
+			"offsetEastMeters": -97.76,
 			"hae": 1500,
 			"courseDeg": 90,
 			"speedMps": 120
@@ -24,8 +24,8 @@ const twoTrackJSON = `{
 		{
 			"uid": "track-2",
 			"callsign": "EAGLE02",
-			"lat": 30.26,
-			"lon": -97.7404,
+			"offsetNorthMeters": 30.26,
+			"offsetEastMeters": -97.7404,
 			"hae": 2000,
 			"courseDeg": 0,
 			"speedMps": 100
@@ -47,7 +47,7 @@ func TestParse_ValidScenario(t *testing.T) {
 	if first.UID != "track-1" || first.Callsign != "EAGLE01" || first.Type != "a-f-A" {
 		t.Errorf("first track = %+v, unexpected fields", first)
 	}
-	if first.Lat != 30.2747 || first.Lon != -97.76 || first.HAE != 1500 {
+	if first.OffsetNorthMeters != 30.2747 || first.OffsetEastMeters != -97.76 || first.HAE != 1500 {
 		t.Errorf("first track position = %+v, unexpected", first)
 	}
 	if first.CourseDeg != 90 || first.SpeedMPS != 120 {
@@ -68,7 +68,7 @@ func TestParse_ValidScenario(t *testing.T) {
 }
 
 func TestParse_ParsesDescription(t *testing.T) {
-	sc, err := Parse([]byte(`{"description": "Two tracks near the Capitol", "tracks": [{"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2}]}`))
+	sc, err := Parse([]byte(`{"description": "Two tracks near the Capitol", "tracks": [{"uid": "t1", "callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2}]}`))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestParse_DescriptionIsOptional(t *testing.T) {
 }
 
 func TestParse_DefaultsTickIntervalWhenOmitted(t *testing.T) {
-	sc, err := Parse([]byte(`{"tracks": [{"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2}]}`))
+	sc, err := Parse([]byte(`{"tracks": [{"uid": "t1", "callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2}]}`))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -105,7 +105,7 @@ func TestParse_RequiresAtLeastOneTrack(t *testing.T) {
 }
 
 func TestParse_RequiresUID(t *testing.T) {
-	_, err := Parse([]byte(`{"tracks": [{"callsign": "C1", "lat": 1, "lon": 2}]}`))
+	_, err := Parse([]byte(`{"tracks": [{"callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2}]}`))
 	if err == nil {
 		t.Fatal("expected error for missing uid, got nil")
 	}
@@ -115,7 +115,7 @@ func TestParse_RequiresUID(t *testing.T) {
 }
 
 func TestParse_RequiresCallsign(t *testing.T) {
-	_, err := Parse([]byte(`{"tracks": [{"uid": "t1", "lat": 1, "lon": 2}]}`))
+	_, err := Parse([]byte(`{"tracks": [{"uid": "t1", "offsetNorthMeters": 1, "offsetEastMeters": 2}]}`))
 	if err == nil {
 		t.Fatal("expected error for missing callsign, got nil")
 	}
@@ -126,8 +126,8 @@ func TestParse_RequiresCallsign(t *testing.T) {
 
 func TestParse_RejectsDuplicateUID(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [
-		{"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2},
-		{"uid": "t1", "callsign": "C2", "lat": 3, "lon": 4}
+		{"uid": "t1", "callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2},
+		{"uid": "t1", "callsign": "C2", "offsetNorthMeters": 3, "offsetEastMeters": 4}
 	]}`))
 	if err == nil {
 		t.Fatal("expected error for duplicate uid, got nil")

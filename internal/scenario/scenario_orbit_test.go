@@ -13,8 +13,8 @@ const orbitTrackJSON = `{
 			"type": "a-f-A-M-H",
 			"hae": 300,
 			"orbit": {
-				"centerLat": 30.2747,
-				"centerLon": -97.7404,
+				"offsetNorthMeters": 30.2747,
+				"offsetEastMeters": -97.7404,
 				"radiusMeters": 800,
 				"speedMps": 30,
 				"clockwise": true,
@@ -34,8 +34,8 @@ func TestParse_OrbitTrack(t *testing.T) {
 	if tr.Orbit == nil {
 		t.Fatal("Orbit = nil, want a populated orbit config")
 	}
-	if tr.Orbit.CenterLat != 30.2747 || tr.Orbit.CenterLon != -97.7404 {
-		t.Errorf("orbit center = (%v, %v), unexpected", tr.Orbit.CenterLat, tr.Orbit.CenterLon)
+	if tr.Orbit.OffsetNorthMeters != 30.2747 || tr.Orbit.OffsetEastMeters != -97.7404 {
+		t.Errorf("orbit center = (%v, %v), unexpected", tr.Orbit.OffsetNorthMeters, tr.Orbit.OffsetEastMeters)
 	}
 	if tr.Orbit.RadiusMeters != 800 || tr.Orbit.SpeedMPS != 30 {
 		t.Errorf("orbit radius/speed = (%v, %v), unexpected", tr.Orbit.RadiusMeters, tr.Orbit.SpeedMPS)
@@ -61,7 +61,7 @@ func TestParse_TrackWithoutOrbitHasNilOrbit(t *testing.T) {
 func TestParse_OrbitRequiresPositiveRadius(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
 		"uid": "helo-1", "callsign": "HELO01",
-		"orbit": {"centerLat": 1, "centerLon": 2, "radiusMeters": 0, "speedMps": 30}
+		"orbit": {"offsetNorthMeters": 1, "offsetEastMeters": 2, "radiusMeters": 0, "speedMps": 30}
 	}]}`))
 	if err == nil {
 		t.Fatal("expected error for zero radiusMeters, got nil")
@@ -74,7 +74,7 @@ func TestParse_OrbitRequiresPositiveRadius(t *testing.T) {
 func TestParse_OrbitRequiresPositiveSpeed(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
 		"uid": "helo-1", "callsign": "HELO01",
-		"orbit": {"centerLat": 1, "centerLon": 2, "radiusMeters": 800, "speedMps": 0}
+		"orbit": {"offsetNorthMeters": 1, "offsetEastMeters": 2, "radiusMeters": 800, "speedMps": 0}
 	}]}`))
 	if err == nil {
 		t.Fatal("expected error for zero speedMps, got nil")

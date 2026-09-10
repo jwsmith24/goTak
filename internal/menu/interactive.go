@@ -19,8 +19,8 @@ const (
 	KeyQuit // Ctrl+C, Esc, or 'q': cancel selection
 )
 
-// ErrCancelled is returned by RunInteractive when the user cancels the
-// menu (Ctrl+C, Esc, or 'q') instead of selecting an entry.
+// ErrCancelled is returned when the user cancels an interactive menu
+// (Ctrl+C, Esc, or 'q') instead of selecting an entry.
 var ErrCancelled = errors.New("menu: selection cancelled")
 
 const menuContentWidth = 76 // characters between the "| " and " |" borders
@@ -135,51 +135,6 @@ func frameLine(text string) string {
 func highlight(line string) string {
 	inner := strings.TrimSuffix(strings.TrimPrefix(line, "| "), " |")
 	return "| \x1b[7m" + inner + "\x1b[0m |"
-}
-
-// RunInteractive drives an arrow-key menu against r/w: a built-in
-// "default track" entry followed by scenarios. It redraws the framed
-// menu after every navigation key and returns the selected scenario's
-// Path (empty for the default entry) once the user presses Enter. It
-// returns ErrCancelled if the user cancels, or an I/O error if r is
-// exhausted before either happens.
-func RunInteractive(w io.Writer, r io.Reader, scenarios []Option) (string, error) {
-	entries := make([]string, 0, len(scenarios)+1)
-	entries = append(entries, defaultLabel)
-	for _, opt := range scenarios {
-		entries = append(entries, opt.Label)
-	}
-
-	const title = "Select a configuration to run:"
-	linesPerDraw := len(entries) + 6 // border, title, blank, entries, blank, footer, border
-
-	br := bufio.NewReader(r)
-	selected := 0
-
-	writeFrame(w, Render(title, entries, selected))
-
-	for {
-		key, err := readKey(br)
-		if err != nil {
-			return "", fmt.Errorf("menu: reading selection: %w", err)
-		}
-
-		switch key {
-		case KeyQuit:
-			return "", ErrCancelled
-		case KeyEnter:
-			if selected == 0 {
-				return "", nil
-			}
-			return scenarios[selected-1].Path, nil
-		case KeyUp, KeyDown:
-			selected = NextIndex(selected, len(entries), key)
-			// Move the cursor back to the top of the box and redraw in
-			// place, rather than printing a new box below the old one.
-			fmt.Fprintf(w, "\x1b[%dA", linesPerDraw)
-			writeFrame(w, Render(title, entries, selected))
-		}
-	}
 }
 
 // writeFrame writes s with "\r\n" line endings. A raw terminal has

@@ -13,8 +13,8 @@ const raceTrackJSON = `{
 			"type": "a-f-A-M-F-Q",
 			"hae": 1200,
 			"raceTrack": {
-				"centerLat": 30.28,
-				"centerLon": -97.75,
+				"offsetNorthMeters": 30.28,
+				"offsetEastMeters": -97.75,
 				"headingDeg": 45,
 				"legLengthMeters": 4000,
 				"turnRadiusMeters": 800,
@@ -35,8 +35,8 @@ func TestParse_RaceTrackTrack(t *testing.T) {
 	if tr.RaceTrack == nil {
 		t.Fatal("RaceTrack = nil, want a populated race-track config")
 	}
-	if tr.RaceTrack.CenterLat != 30.28 || tr.RaceTrack.CenterLon != -97.75 {
-		t.Errorf("center = (%v, %v), unexpected", tr.RaceTrack.CenterLat, tr.RaceTrack.CenterLon)
+	if tr.RaceTrack.OffsetNorthMeters != 30.28 || tr.RaceTrack.OffsetEastMeters != -97.75 {
+		t.Errorf("center = (%v, %v), unexpected", tr.RaceTrack.OffsetNorthMeters, tr.RaceTrack.OffsetEastMeters)
 	}
 	if tr.RaceTrack.HeadingDeg != 45 {
 		t.Errorf("HeadingDeg = %v, want 45", tr.RaceTrack.HeadingDeg)
@@ -67,7 +67,7 @@ func TestParse_TrackWithoutRaceTrackHasNilRaceTrack(t *testing.T) {
 func TestParse_RaceTrackRequiresPositiveLegLength(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
 		"uid": "uas-1", "callsign": "RQ01",
-		"raceTrack": {"centerLat": 1, "centerLon": 2, "headingDeg": 0, "legLengthMeters": 0, "turnRadiusMeters": 800, "speedMps": 30}
+		"raceTrack": {"offsetNorthMeters": 1, "offsetEastMeters": 2, "headingDeg": 0, "legLengthMeters": 0, "turnRadiusMeters": 800, "speedMps": 30}
 	}]}`))
 	if err == nil {
 		t.Fatal("expected error for zero legLengthMeters, got nil")
@@ -80,7 +80,7 @@ func TestParse_RaceTrackRequiresPositiveLegLength(t *testing.T) {
 func TestParse_RaceTrackRequiresPositiveTurnRadius(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
 		"uid": "uas-1", "callsign": "RQ01",
-		"raceTrack": {"centerLat": 1, "centerLon": 2, "headingDeg": 0, "legLengthMeters": 4000, "turnRadiusMeters": 0, "speedMps": 30}
+		"raceTrack": {"offsetNorthMeters": 1, "offsetEastMeters": 2, "headingDeg": 0, "legLengthMeters": 4000, "turnRadiusMeters": 0, "speedMps": 30}
 	}]}`))
 	if err == nil {
 		t.Fatal("expected error for zero turnRadiusMeters, got nil")
@@ -93,7 +93,7 @@ func TestParse_RaceTrackRequiresPositiveTurnRadius(t *testing.T) {
 func TestParse_RaceTrackRequiresPositiveSpeed(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
 		"uid": "uas-1", "callsign": "RQ01",
-		"raceTrack": {"centerLat": 1, "centerLon": 2, "headingDeg": 0, "legLengthMeters": 4000, "turnRadiusMeters": 800, "speedMps": 0}
+		"raceTrack": {"offsetNorthMeters": 1, "offsetEastMeters": 2, "headingDeg": 0, "legLengthMeters": 4000, "turnRadiusMeters": 800, "speedMps": 0}
 	}]}`))
 	if err == nil {
 		t.Fatal("expected error for zero speedMps, got nil")
@@ -106,7 +106,7 @@ func TestParse_RaceTrackRequiresPositiveSpeed(t *testing.T) {
 func TestParse_RaceTrackRejectsBothSpeedMpsAndSpeedKts(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
 		"uid": "uas-1", "callsign": "RQ01",
-		"raceTrack": {"centerLat": 1, "centerLon": 2, "headingDeg": 0, "legLengthMeters": 4000, "turnRadiusMeters": 800, "speedMps": 30, "speedKts": 60}
+		"raceTrack": {"offsetNorthMeters": 1, "offsetEastMeters": 2, "headingDeg": 0, "legLengthMeters": 4000, "turnRadiusMeters": 800, "speedMps": 30, "speedKts": 60}
 	}]}`))
 	if err == nil {
 		t.Fatal("expected error when both raceTrack speedMps and speedKts are set, got nil")

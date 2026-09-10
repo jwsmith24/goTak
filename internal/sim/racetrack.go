@@ -130,7 +130,7 @@ func (r RaceTrackState) positionAndCourse() (lat, lon, courseDeg float64) {
 		dirNorth = sin*perp[1] - cos*along[1]
 	}
 
-	lat, lon = offsetLatLon(r.CenterLat, r.CenterLon, posEast, posNorth)
+	lat, lon = OffsetLatLon(r.CenterLat, r.CenterLon, posEast, posNorth)
 	courseDeg = normalizeDegrees(radiansToDegrees(math.Atan2(dirEast, dirNorth)))
 	return lat, lon, courseDeg
 }

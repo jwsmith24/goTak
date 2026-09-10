@@ -33,7 +33,7 @@ func TestLoad_AustinCapitolHelicoptersScenario(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	const wantTracks = 7
+	const wantTracks = 10
 	if len(sc.Tracks) != wantTracks {
 		t.Fatalf("len(Tracks) = %d, want %d", len(sc.Tracks), wantTracks)
 	}
@@ -79,6 +79,17 @@ func TestLoad_AustinCapitolHelicoptersScenario(t *testing.T) {
 	for _, uid := range []string{"gotak-austin-helo01", "gotak-austin-helo02", "gotak-austin-uas-hover", "gotak-austin-uas-racetrack"} {
 		if byUID[uid].Sensor == nil {
 			t.Errorf("track %q: Sensor = nil, want a populated sensor", uid)
+		}
+	}
+
+	for _, uid := range []string{"gotak-austin-enyInf1", "gotak-austin-enyInf2", "gotak-austin-enyInf3"} {
+		tr, ok := byUID[uid]
+		if !ok {
+			t.Errorf("missing expected hostile track %q", uid)
+			continue
+		}
+		if tr.Type != "a-h-G-U-C-I" {
+			t.Errorf("hostile track %q: Type = %q, want %q", uid, tr.Type, "a-h-G-U-C-I")
 		}
 	}
 }

@@ -67,6 +67,26 @@ func TestParse_ValidScenario(t *testing.T) {
 	}
 }
 
+func TestParse_ParsesDescription(t *testing.T) {
+	sc, err := Parse([]byte(`{"description": "Two tracks near the Capitol", "tracks": [{"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2}]}`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sc.Description != "Two tracks near the Capitol" {
+		t.Errorf("Description = %q, want %q", sc.Description, "Two tracks near the Capitol")
+	}
+}
+
+func TestParse_DescriptionIsOptional(t *testing.T) {
+	sc, err := Parse([]byte(twoTrackJSON))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if sc.Description != "" {
+		t.Errorf("Description = %q, want empty when not set", sc.Description)
+	}
+}
+
 func TestParse_DefaultsTickIntervalWhenOmitted(t *testing.T) {
 	sc, err := Parse([]byte(`{"tracks": [{"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2}]}`))
 	if err != nil {

@@ -1,4 +1,5 @@
 {
+  "description": "Helicopters, UAS, friendly ground units, and hostile infantry near the Texas Capitol",
   "tickIntervalSeconds": 2,
   "tracks": [
     {

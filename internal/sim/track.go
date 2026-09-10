@@ -67,12 +67,12 @@ func destinationPoint(lat, lon, bearingDeg, distanceMeters float64) (float64, fl
 	return radiansToDegrees(lat2), radiansToDegrees(lon2)
 }
 
-// offsetLatLon returns the point eastMeters/northMeters from (lat0, lon0),
+// OffsetLatLon returns the point eastMeters/northMeters from (lat0, lon0),
 // using a local equirectangular (flat-earth) approximation. This is
 // accurate enough for the km-scale local geometry of a race-track
-// pattern, and much simpler than exact spherical geodesics for that
-// case.
-func offsetLatLon(lat0, lon0, eastMeters, northMeters float64) (float64, float64) {
+// pattern or a scenario's tracks around a central location, and much
+// simpler than exact spherical geodesics for that case.
+func OffsetLatLon(lat0, lon0, eastMeters, northMeters float64) (float64, float64) {
 	lat := lat0 + radiansToDegrees(northMeters/earthRadiusMeters)
 	lon := lon0 + radiansToDegrees(eastMeters/(earthRadiusMeters*math.Cos(degreesToRadians(lat0))))
 	return lat, lon

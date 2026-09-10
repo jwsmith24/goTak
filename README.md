@@ -1,15 +1,14 @@
 # goTak
 
-A terminal tool for simulating air tracks on a development TAK server.
+A terminal tool for simulating air tracks on a TAK server.
 
 Given a server IP, username, and password, it:
 
 1. Enrolls for a client certificate via the TAK server's
-   username/password-authenticated enrollment endpoint (no preconfigured
-   trust store required).
+   username/password-authenticated enrollment endpoint.
 2. Opens an mTLS connection to the server's CoT streaming port using that
    certificate.
-3. Simulates one or more moving air tracks, sending a CoT position update
+3. Simulates one or more tracks, sending a CoT position update
    for each on a fixed interval until you stop it.
 
 ## Requirements
@@ -96,7 +95,7 @@ update them:
   the other, not both; `speedKts` is converted to meters/second when the
   file is loaded.
 - `tickIntervalSeconds` controls how often every track's position updates;
-  defaults to 2 seconds when omitted.
+  defaults to 2 seconds when omitted which aligns with real PLI of a moving track.
 
 [`scenarios/austin-capitol.json`](scenarios/austin-capitol.json) ships
 with the repo: two air tracks crossing paths near the Texas Capitol in
@@ -240,6 +239,12 @@ Then just run:
 
 ```sh
 go run ./cmd/gotak
+```
+
+or 
+
+```sh
+./run.sh
 ```
 
 Any flag you do pass on the command line overrides the matching value from

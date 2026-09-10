@@ -16,6 +16,13 @@ type Config struct {
 	Username      string
 	Password      string
 	ScenarioPath  string // optional; empty means use the built-in default track
+	// ScenarioFromFlag is true only when -scenario was passed explicitly
+	// on the command line, as opposed to falling back to GOTAK_SCENARIO
+	// in .env. Callers use this to decide whether an interactive
+	// scenario picker should still run: an explicit flag means a
+	// scripted/non-interactive invocation, so it always skips the
+	// picker; a .env default is just a convenience and should not.
+	ScenarioFromFlag bool
 }
 
 // dotEnvPath is the env file ParseFlags looks for in the working
@@ -57,6 +64,13 @@ func parseFlags(args []string, envFilePath string) (Config, error) {
 		return Config{}, err
 	}
 
+	var scenarioFromFlag bool
+	fs.Visit(func(f *flag.Flag) {
+		if f.Name == "scenario" {
+			scenarioFromFlag = true
+		}
+	})
+
 	var missing []string
 	if *server == "" {
 		missing = append(missing, "server")
@@ -72,9 +86,10 @@ func parseFlags(args []string, envFilePath string) (Config, error) {
 	}
 
 	return Config{
-		ServerAddress: *server,
-		Username:      *username,
-		Password:      *password,
-		ScenarioPath:  *scenarioPath,
+		ServerAddress:    *server,
+		Username:         *username,
+		Password:         *password,
+		ScenarioPath:     *scenarioPath,
+		ScenarioFromFlag: scenarioFromFlag,
 	}, nil
 }

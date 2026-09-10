@@ -105,9 +105,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	// An explicit -scenario flag or GOTAK_SCENARIO always skips the menu,
-	// so scripted/non-interactive runs are unaffected.
-	if cfg.ScenarioPath == "" {
+	// An explicit -scenario flag always skips the menu, so scripted/
+	// non-interactive runs are unaffected. A GOTAK_SCENARIO default from
+	// .env is just a convenience and should not suppress the menu.
+	if !cfg.ScenarioFromFlag {
 		if scenarios := menu.DiscoverScenarios(scenariosDir); len(scenarios) > 0 {
 			chosen, err := menu.Prompt(os.Stdout, os.Stdin, scenarios)
 			if err != nil {

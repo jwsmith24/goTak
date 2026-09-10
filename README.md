@@ -56,7 +56,7 @@ that are missing. `-scenario` is optional.
 
 ### Choosing a scenario
 
-If you don't pass `-scenario` (or set `GOTAK_SCENARIO`), and the
+Unless you pass `-scenario` explicitly on the command line, and the
 `scenarios/` directory has any valid scenario files in it, `gotak` shows
 an interactive menu before enrolling:
 
@@ -69,9 +69,10 @@ Enter choice:
 ```
 
 Enter a number to pick a scenario, or `1` for the single built-in
-default track. Passing `-scenario` (or `GOTAK_SCENARIO`) always skips
-the menu, so scripted or non-interactive runs are unaffected. A scenario
-file's optional top-level `"description"` field is what shows up next to
+default track. Only an explicit `-scenario` flag skips the menu (for
+scripted/non-interactive runs) — a `GOTAK_SCENARIO` default from `.env`
+does not; the menu still shows so you can pick interactively each time.
+A scenario file's optional top-level `"description"` field is what shows up next to
 its filename in the menu.
 
 ### Scenario files
@@ -256,6 +257,12 @@ GOTAK_USERNAME=dev
 GOTAK_PASSWORD=devpass
 GOTAK_SCENARIO=scenarios/austin-capitol.json
 ```
+
+`GOTAK_SCENARIO` doesn't skip the interactive menu described above — it
+only matters as a fallback for when no menu is shown at all (for
+example, if `scenarios/` isn't found relative to your working
+directory). Use `-scenario` instead when you want to skip the menu and
+run a specific scenario non-interactively.
 
 Then just run:
 

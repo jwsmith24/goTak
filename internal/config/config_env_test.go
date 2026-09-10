@@ -44,6 +44,44 @@ func TestParseFlagsWithEnvFile_ScenarioPathFallsBackToEnvFile(t *testing.T) {
 	}
 }
 
+func TestParseFlagsWithEnvFile_ScenarioFromEnvDoesNotSetScenarioFromFlag(t *testing.T) {
+	envPath := writeTempEnvFile(t, ""+
+		"GOTAK_SERVER=192.168.1.50\n"+
+		"GOTAK_USERNAME=dev\n"+
+		"GOTAK_PASSWORD=devpass\n"+
+		"GOTAK_SCENARIO=scenarios/austin-capitol.json\n")
+
+	cfg, err := parseFlags(nil, envPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.ScenarioPath != "scenarios/austin-capitol.json" {
+		t.Errorf("ScenarioPath = %q, want %q", cfg.ScenarioPath, "scenarios/austin-capitol.json")
+	}
+	if cfg.ScenarioFromFlag {
+		t.Error("ScenarioFromFlag = true, want false: the value came from .env, not -scenario")
+	}
+}
+
+func TestParseFlagsWithEnvFile_ScenarioFlagSetsScenarioFromFlagEvenWithEnvValue(t *testing.T) {
+	envPath := writeTempEnvFile(t, ""+
+		"GOTAK_SERVER=192.168.1.50\n"+
+		"GOTAK_USERNAME=dev\n"+
+		"GOTAK_PASSWORD=devpass\n"+
+		"GOTAK_SCENARIO=scenarios/austin-capitol.json\n")
+
+	cfg, err := parseFlags([]string{"-scenario", "scenarios/austin-capitol-helicopters.json"}, envPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.ScenarioPath != "scenarios/austin-capitol-helicopters.json" {
+		t.Errorf("ScenarioPath = %q, want the flag value", cfg.ScenarioPath)
+	}
+	if !cfg.ScenarioFromFlag {
+		t.Error("ScenarioFromFlag = false, want true: -scenario was passed explicitly")
+	}
+}
+
 func TestParseFlagsWithEnvFile_FlagsOverrideEnvFileValues(t *testing.T) {
 	envPath := writeTempEnvFile(t, ""+
 		"GOTAK_SERVER=192.168.1.50\n"+

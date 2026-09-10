@@ -75,6 +75,7 @@ type SensorConfig struct {
 // Scenario describes a full simulation run: how often to send position
 // updates, and the tracks to simulate.
 type Scenario struct {
+	Description         string        `json:"description,omitempty"`
 	TickIntervalSeconds float64       `json:"tickIntervalSeconds,omitempty"`
 	Tracks              []TrackConfig `json:"tracks"`
 }

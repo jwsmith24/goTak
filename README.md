@@ -51,8 +51,49 @@ go build -o gotak ./cmd/gotak
 | `-scenario`  | Path to a JSON scenario file (optional; see below)                  |
 
 `-server`, `-username`, and `-password` are required; the app reports any
-that are missing. `-scenario` is optional — without it, the app simulates
-a single default track.
+that are missing. `-scenario` is optional.
+
+### Choosing a scenario
+
+Unless you pass `-scenario` explicitly on the command line, and the
+`scenarios/` directory has any valid scenario files in it, `gotak` shows
+an interactive menu before enrolling. Use the up/down arrow keys to move
+the highlight and press Enter to pick:
+
+```
++------------------------------------------------------------------------------+
+| Select a configuration to run:                                               |
+|                                                                                |
+|   Default (single built-in track)                                            |
+| > austin-capitol-helicopters.json - Helicopters, UAS, friendly ground uni...  |
+|   austin-capitol.json - Two air tracks crossing paths near the Texas Capitol  |
+|                                                                                |
+| (Use up/down arrows and Enter; q to cancel)                                   |
++------------------------------------------------------------------------------+
+```
+
+The highlighted entry (shown here as `>`, rendered in reverse video in a
+real terminal) is what Enter selects; the selection wraps around at
+either end. Press `q`, Esc, or Ctrl+C to cancel without starting a
+simulation.
+
+If stdin isn't an interactive terminal (for example, input piped in from
+a script or CI), `gotak` falls back to a plain numbered list read one
+line at a time instead — no raw terminal mode, no arrow keys:
+
+```
+Select a configuration to run:
+  1) Default (single built-in track)
+  2) austin-capitol-helicopters.json - Helicopters, UAS, friendly ground units, and hostile infantry near the Texas Capitol
+  3) austin-capitol.json - Two air tracks crossing paths near the Texas Capitol
+Enter choice:
+```
+
+Only an explicit `-scenario` flag skips the menu entirely (for scripted/
+non-interactive runs) — a `GOTAK_SCENARIO` default from `.env` does not;
+the menu still shows so you can pick interactively each time. A scenario
+file's optional top-level `"description"` field is what shows up next to
+its filename in the menu.
 
 ### Scenario files
 
@@ -86,6 +127,8 @@ update them:
 }
 ```
 
+- `description` (top-level, optional) is shown next to the file in the
+  interactive scenario menu (see below).
 - `uid` and `callsign` are required and must be unique per track.
 - `type` is the CoT type (e.g. `a-f-A` for friendly air); defaults to
   `a-f-A` when omitted.
@@ -234,6 +277,12 @@ GOTAK_USERNAME=dev
 GOTAK_PASSWORD=devpass
 GOTAK_SCENARIO=scenarios/austin-capitol.json
 ```
+
+`GOTAK_SCENARIO` doesn't skip the interactive menu described above — it
+only matters as a fallback for when no menu is shown at all (for
+example, if `scenarios/` isn't found relative to your working
+directory). Use `-scenario` instead when you want to skip the menu and
+run a specific scenario non-interactively.
 
 Then just run:
 

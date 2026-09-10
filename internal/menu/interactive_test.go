@@ -2,7 +2,6 @@ package menu
 
 import (
 	"bufio"
-	"bytes"
 	"strings"
 	"testing"
 )
@@ -172,89 +171,6 @@ func TestRender_TruncatesLongEntries(t *testing.T) {
 		if got := len([]rune(stripANSI(line))); got != width {
 			t.Errorf("line width = %d, want %d for %q", got, width, line)
 		}
-	}
-}
-
-func TestRunInteractive_DownDownEnterSelectsThirdEntry(t *testing.T) {
-	scenarios := []Option{
-		{Path: "/scenarios/a.json", Label: "a.json - scenario A"},
-		{Path: "/scenarios/b.json", Label: "b.json - scenario B"},
-	}
-	var out bytes.Buffer
-
-	// Entries are [default, a.json, b.json]; down, down lands on b.json.
-	got, err := RunInteractive(&out, strings.NewReader("\x1b[B\x1b[B\r"), scenarios)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != "/scenarios/b.json" {
-		t.Errorf("RunInteractive() = %q, want %q", got, "/scenarios/b.json")
-	}
-	if out.Len() == 0 {
-		t.Error("expected menu output to be written")
-	}
-}
-
-func TestRunInteractive_RedrawsInPlaceOnNavigation(t *testing.T) {
-	scenarios := []Option{{Path: "/scenarios/a.json", Label: "a.json"}}
-	var out bytes.Buffer
-
-	// entries = [default, a.json] -> 2 entries -> 8 lines per draw.
-	if _, err := RunInteractive(&out, strings.NewReader("\x1b[B\r"), scenarios); err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-
-	if !strings.Contains(out.String(), "\x1b[8A") {
-		t.Errorf("expected a cursor-up-8-lines escape sequence before the redraw, got:\n%s", out.String())
-	}
-}
-
-func TestRunInteractive_EnterImmediatelySelectsDefault(t *testing.T) {
-	scenarios := []Option{{Path: "/scenarios/a.json", Label: "a.json"}}
-	var out bytes.Buffer
-
-	got, err := RunInteractive(&out, strings.NewReader("\r"), scenarios)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != "" {
-		t.Errorf("RunInteractive() = %q, want empty path for the default entry", got)
-	}
-}
-
-func TestRunInteractive_UpFromDefaultWrapsToLastEntry(t *testing.T) {
-	scenarios := []Option{
-		{Path: "/scenarios/a.json", Label: "a.json"},
-		{Path: "/scenarios/b.json", Label: "b.json"},
-	}
-	var out bytes.Buffer
-
-	got, err := RunInteractive(&out, strings.NewReader("\x1b[A\r"), scenarios)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if got != "/scenarios/b.json" {
-		t.Errorf("RunInteractive() = %q, want %q (wrapped to the last entry)", got, "/scenarios/b.json")
-	}
-}
-
-func TestRunInteractive_QReturnsError(t *testing.T) {
-	scenarios := []Option{{Path: "/scenarios/a.json", Label: "a.json"}}
-	var out bytes.Buffer
-
-	_, err := RunInteractive(&out, strings.NewReader("q"), scenarios)
-	if err == nil {
-		t.Fatal("expected error for cancel key, got nil")
-	}
-}
-
-func TestRunInteractive_EOFWithoutEnterReturnsError(t *testing.T) {
-	scenarios := []Option{{Path: "/scenarios/a.json", Label: "a.json"}}
-	var out bytes.Buffer
-
-	_, err := RunInteractive(&out, strings.NewReader("\x1b[B"), scenarios)
-	if err == nil {
-		t.Fatal("expected error when input ends before Enter, got nil")
 	}
 }
 

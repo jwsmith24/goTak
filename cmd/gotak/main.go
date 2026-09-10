@@ -2,6 +2,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -106,12 +107,17 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Shared across every interactive menu shown this run: each wraps
+	// stdin exactly once, so a sequence of prompts doesn't drop bytes
+	// buffered-but-unread by an earlier one.
+	stdinReader := bufio.NewReader(os.Stdin)
+
 	// An explicit -scenario flag always skips the menu, so scripted/
 	// non-interactive runs are unaffected. A GOTAK_SCENARIO default from
 	// .env is just a convenience and should not suppress the menu.
 	if !cfg.ScenarioFromFlag {
 		if scenarios := menu.DiscoverScenarios(scenariosDir); len(scenarios) > 0 {
-			chosen, err := menu.RunMenu(os.Stdin, os.Stdout, scenarios)
+			chosen, err := menu.RunScenarioMenu(os.Stdin, stdinReader, os.Stdout, scenarios)
 			if errors.Is(err, menu.ErrCancelled) {
 				fmt.Println("Cancelled.")
 				os.Exit(0)

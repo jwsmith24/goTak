@@ -68,6 +68,7 @@ near Austin one run and near Fort Campbell the next:
 | > Austin, TX                                                                  |
 |   Fort Campbell, KY                                                          |
 |   Wheeler Army Airfield, HI                                                  |
+|   Custom location (enter lat/lon)                                           |
 |                                                                                |
 | (Use up/down arrows and Enter; q to cancel)                                   |
 +------------------------------------------------------------------------------+
@@ -77,6 +78,16 @@ It uses the same arrow-key/plain-numbered-list behavior described below
 for the scenario menu. Only an explicit `-location` flag skips it (for
 scripted/non-interactive runs) — a `GOTAK_LOCATION` default from `.env`
 does not; the menu still shows so you can pick interactively each time.
+
+#### Custom locations
+
+Picking `Custom location (enter lat/lon)` prompts for a name (optional)
+and a latitude/longitude in decimal degrees, then saves it to a local
+file (under your OS user config directory, e.g.
+`~/.config/gotak/custom_locations.json` on Linux) so it shows up as a
+regular entry in the location menu on every future run — no need to
+re-enter it. You can also select a saved custom location non-interactively
+with `-location "<its name>"`, the same as the three built-in locations.
 
 ### Choosing a scenario
 

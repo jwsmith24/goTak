@@ -119,13 +119,25 @@ func main() {
 	// buffered-but-unread by an earlier one.
 	stdinReader := bufio.NewReader(os.Stdin)
 
+	customLocationsPath, err := location.CustomLocationsPath()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "gotak:", err)
+		os.Exit(1)
+	}
+	customLocations, err := location.LoadCustom(customLocationsPath)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "gotak:", err)
+		os.Exit(1)
+	}
+	availableLocations := append(append([]location.Location{}, location.All...), customLocations...)
+
 	// An explicit -location flag always skips the menu, so scripted/
 	// non-interactive runs are unaffected. A GOTAK_LOCATION default from
 	// .env is just a convenience and should not suppress the menu.
-	origin := location.All[0]
+	origin := availableLocations[0]
 	if cfg.LocationFromFlag {
 		found := false
-		for _, loc := range location.All {
+		for _, loc := range availableLocations {
 			if loc.Name == cfg.LocationName {
 				origin = loc
 				found = true
@@ -137,7 +149,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		chosen, err := menu.RunLocationMenu(os.Stdin, stdinReader, os.Stdout, location.All)
+		chosen, err := menu.RunLocationMenu(os.Stdin, stdinReader, os.Stdout, availableLocations)
 		if errors.Is(err, menu.ErrCancelled) {
 			fmt.Println("Cancelled.")
 			os.Exit(0)

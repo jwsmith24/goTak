@@ -52,8 +52,27 @@ go build -o gotak ./cmd/gotak
 | `-scenario`  | Path to a JSON scenario file (optional; see below)                  |
 
 `-server`, `-username`, and `-password` are required; the app reports any
-that are missing. `-scenario` is optional — without it, the app simulates
-a single default track.
+that are missing. `-scenario` is optional.
+
+### Choosing a scenario
+
+If you don't pass `-scenario` (or set `GOTAK_SCENARIO`), and the
+`scenarios/` directory has any valid scenario files in it, `gotak` shows
+an interactive menu before enrolling:
+
+```
+Select a configuration to run:
+  1) Default (single built-in track)
+  2) austin-capitol-helicopters.json - Helicopters, UAS, friendly ground units, and hostile infantry near the Texas Capitol
+  3) austin-capitol.json - Two air tracks crossing paths near the Texas Capitol
+Enter choice:
+```
+
+Enter a number to pick a scenario, or `1` for the single built-in
+default track. Passing `-scenario` (or `GOTAK_SCENARIO`) always skips
+the menu, so scripted or non-interactive runs are unaffected. A scenario
+file's optional top-level `"description"` field is what shows up next to
+its filename in the menu.
 
 ### Scenario files
 
@@ -87,6 +106,8 @@ update them:
 }
 ```
 
+- `description` (top-level, optional) is shown next to the file in the
+  interactive scenario menu (see below).
 - `uid` and `callsign` are required and must be unique per track.
 - `type` is the CoT type (e.g. `a-f-A` for friendly air); defaults to
   `a-f-A` when omitted.

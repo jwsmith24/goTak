@@ -12,6 +12,7 @@ import (
 	"github.com/jwsmith24/goTak/internal/config"
 	"github.com/jwsmith24/goTak/internal/cot"
 	"github.com/jwsmith24/goTak/internal/enroll"
+	"github.com/jwsmith24/goTak/internal/menu"
 	"github.com/jwsmith24/goTak/internal/scenario"
 	"github.com/jwsmith24/goTak/internal/sim"
 	"github.com/jwsmith24/goTak/internal/stream"
@@ -22,6 +23,7 @@ const (
 	defaultTickInterval  = 2 * time.Second
 	defaultTrackUID      = "gotak-sim-1"
 	defaultTrackCallsign = "SIM01"
+	scenariosDir         = "scenarios"
 )
 
 // loadTracks returns the tracks to simulate and how often to update them.
@@ -101,6 +103,19 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "gotak:", err)
 		os.Exit(1)
+	}
+
+	// An explicit -scenario flag or GOTAK_SCENARIO always skips the menu,
+	// so scripted/non-interactive runs are unaffected.
+	if cfg.ScenarioPath == "" {
+		if scenarios := menu.DiscoverScenarios(scenariosDir); len(scenarios) > 0 {
+			chosen, err := menu.Prompt(os.Stdout, os.Stdin, scenarios)
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "gotak:", err)
+				os.Exit(1)
+			}
+			cfg.ScenarioPath = chosen
+		}
 	}
 
 	tracks, tickInterval, err := loadTracks(cfg.ScenarioPath)

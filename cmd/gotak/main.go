@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -110,7 +111,11 @@ func main() {
 	// .env is just a convenience and should not suppress the menu.
 	if !cfg.ScenarioFromFlag {
 		if scenarios := menu.DiscoverScenarios(scenariosDir); len(scenarios) > 0 {
-			chosen, err := menu.Prompt(os.Stdout, os.Stdin, scenarios)
+			chosen, err := menu.RunMenu(os.Stdin, os.Stdout, scenarios)
+			if errors.Is(err, menu.ErrCancelled) {
+				fmt.Println("Cancelled.")
+				os.Exit(0)
+			}
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "gotak:", err)
 				os.Exit(1)

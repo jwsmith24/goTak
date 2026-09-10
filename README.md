@@ -58,7 +58,29 @@ that are missing. `-scenario` is optional.
 
 Unless you pass `-scenario` explicitly on the command line, and the
 `scenarios/` directory has any valid scenario files in it, `gotak` shows
-an interactive menu before enrolling:
+an interactive menu before enrolling. Use the up/down arrow keys to move
+the highlight and press Enter to pick:
+
+```
++------------------------------------------------------------------------------+
+| Select a configuration to run:                                               |
+|                                                                                |
+|   Default (single built-in track)                                            |
+| > austin-capitol-helicopters.json - Helicopters, UAS, friendly ground uni...  |
+|   austin-capitol.json - Two air tracks crossing paths near the Texas Capitol  |
+|                                                                                |
+| (Use up/down arrows and Enter; q to cancel)                                   |
++------------------------------------------------------------------------------+
+```
+
+The highlighted entry (shown here as `>`, rendered in reverse video in a
+real terminal) is what Enter selects; the selection wraps around at
+either end. Press `q`, Esc, or Ctrl+C to cancel without starting a
+simulation.
+
+If stdin isn't an interactive terminal (for example, input piped in from
+a script or CI), `gotak` falls back to a plain numbered list read one
+line at a time instead — no raw terminal mode, no arrow keys:
 
 ```
 Select a configuration to run:
@@ -68,11 +90,10 @@ Select a configuration to run:
 Enter choice:
 ```
 
-Enter a number to pick a scenario, or `1` for the single built-in
-default track. Only an explicit `-scenario` flag skips the menu (for
-scripted/non-interactive runs) — a `GOTAK_SCENARIO` default from `.env`
-does not; the menu still shows so you can pick interactively each time.
-A scenario file's optional top-level `"description"` field is what shows up next to
+Only an explicit `-scenario` flag skips the menu entirely (for scripted/
+non-interactive runs) — a `GOTAK_SCENARIO` default from `.env` does not;
+the menu still shows so you can pick interactively each time. A scenario
+file's optional top-level `"description"` field is what shows up next to
 its filename in the menu.
 
 ### Scenario files

@@ -145,6 +145,29 @@ func TestChooseInteractive_EOFWithoutEnterReturnsError(t *testing.T) {
 	}
 }
 
+func TestChooseInteractive_ClearsFrameAndPrintsSummaryOnEnter(t *testing.T) {
+	var out bytes.Buffer
+
+	// entries = ["a", "b"] -> 2 entries -> 8 lines per draw.
+	got, err := chooseInteractive(&out, bufReader("\x1b[B\r"), "Pick one:", []string{"a", "b"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != 1 {
+		t.Fatalf("chooseInteractive() = %d, want 1", got)
+	}
+
+	printed := out.String()
+	if !strings.Contains(printed, "\x1b[8A\x1b[J") {
+		t.Errorf("expected the frame to be cleared (cursor-up-8-lines + erase-to-end) before the summary, got:\n%q", printed)
+	}
+
+	lastLine := printed[strings.LastIndex(printed, "\x1b[J")+len("\x1b[J"):]
+	if !strings.Contains(lastLine, "Pick one:") || !strings.Contains(lastLine, "b") {
+		t.Errorf("summary line = %q, want it to mention the title and the selected entry %q", lastLine, "b")
+	}
+}
+
 func TestChooseInteractive_RedrawsInPlaceOnNavigation(t *testing.T) {
 	var out bytes.Buffer
 

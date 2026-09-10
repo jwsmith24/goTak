@@ -65,6 +65,12 @@ func chooseInteractive(w io.Writer, r *bufio.Reader, title string, entries []str
 		case KeyQuit:
 			return 0, ErrCancelled
 		case KeyEnter:
+			// Collapse the box to a single summary line instead of
+			// leaving it on screen: otherwise a later prompt (e.g. the
+			// scenario menu shown right after the location menu) draws
+			// its own box below this one, and both stay visible at once.
+			clearFrame(w, linesPerDraw)
+			fmt.Fprintf(w, "%s %s\r\n", title, entries[selected])
 			return selected, nil
 		case KeyUp, KeyDown:
 			selected = NextIndex(selected, len(entries), key)
@@ -74,4 +80,11 @@ func chooseInteractive(w io.Writer, r *bufio.Reader, title string, entries []str
 			writeFrame(w, Render(title, entries, selected))
 		}
 	}
+}
+
+// clearFrame moves the cursor back to the top of a previously drawn
+// linesPerDraw-line frame and erases everything from there to the end
+// of the screen.
+func clearFrame(w io.Writer, linesPerDraw int) {
+	fmt.Fprintf(w, "\x1b[%dA\x1b[J", linesPerDraw)
 }

@@ -18,30 +18,35 @@ func knotsToMPS(knots float64) float64 {
 }
 
 // TrackConfig describes one track's callsign, CoT type, and starting
-// kinematic state. A track either flies a straight course (Lat/Lon/
-// CourseDeg/SpeedMPS, Orbit nil) or loops around a fixed point (Orbit
-// set, in which case Lat/Lon/CourseDeg/SpeedMPS are ignored — the
-// starting position and heading are derived from the orbit instead).
+// kinematic state. Positions are given as an offset in meters from
+// whichever central location the scenario runs from (see the location
+// package), not as absolute lat/lon, so the same scenario file can run
+// from any of them. A track either flies a straight course
+// (OffsetNorthMeters/OffsetEastMeters/CourseDeg/SpeedMPS, Orbit and
+// RaceTrack nil) or loops around a fixed point (Orbit or RaceTrack set,
+// in which case those straight-course fields are ignored — the starting
+// position and heading are derived from the orbit/race-track instead).
 type TrackConfig struct {
-	UID       string           `json:"uid"`
-	Callsign  string           `json:"callsign"`
-	Type      string           `json:"type,omitempty"`
-	Lat       float64          `json:"lat,omitempty"`
-	Lon       float64          `json:"lon,omitempty"`
-	HAE       float64          `json:"hae,omitempty"`
-	CourseDeg float64          `json:"courseDeg,omitempty"`
-	SpeedMPS  float64          `json:"speedMps,omitempty"`
-	SpeedKts  float64          `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
-	Orbit     *OrbitConfig     `json:"orbit,omitempty"`
-	RaceTrack *RaceTrackConfig `json:"raceTrack,omitempty"`
-	Sensor    *SensorConfig    `json:"sensor,omitempty"`
+	UID               string           `json:"uid"`
+	Callsign          string           `json:"callsign"`
+	Type              string           `json:"type,omitempty"`
+	OffsetNorthMeters float64          `json:"offsetNorthMeters,omitempty"`
+	OffsetEastMeters  float64          `json:"offsetEastMeters,omitempty"`
+	HAE               float64          `json:"hae,omitempty"`
+	CourseDeg         float64          `json:"courseDeg,omitempty"`
+	SpeedMPS          float64          `json:"speedMps,omitempty"`
+	SpeedKts          float64          `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
+	Orbit             *OrbitConfig     `json:"orbit,omitempty"`
+	RaceTrack         *RaceTrackConfig `json:"raceTrack,omitempty"`
+	Sensor            *SensorConfig    `json:"sensor,omitempty"`
 }
 
 // OrbitConfig describes a track looping at a fixed radius and speed
-// around a center point.
+// around a center point, given as an offset in meters from the
+// scenario's central location.
 type OrbitConfig struct {
-	CenterLat         float64 `json:"centerLat"`
-	CenterLon         float64 `json:"centerLon"`
+	OffsetNorthMeters float64 `json:"offsetNorthMeters,omitempty"`
+	OffsetEastMeters  float64 `json:"offsetEastMeters,omitempty"`
 	RadiusMeters      float64 `json:"radiusMeters"`
 	SpeedMPS          float64 `json:"speedMps,omitempty"`
 	SpeedKts          float64 `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
@@ -51,16 +56,17 @@ type OrbitConfig struct {
 
 // RaceTrackConfig describes a track flying a stadium-shaped ("race
 // track") loiter pattern: two straight legs joined by two 180-degree
-// turns.
+// turns, centered on an offset in meters from the scenario's central
+// location.
 type RaceTrackConfig struct {
-	CenterLat        float64 `json:"centerLat"`
-	CenterLon        float64 `json:"centerLon"`
-	HeadingDeg       float64 `json:"headingDeg,omitempty"`
-	LegLengthMeters  float64 `json:"legLengthMeters"`
-	TurnRadiusMeters float64 `json:"turnRadiusMeters"`
-	SpeedMPS         float64 `json:"speedMps,omitempty"`
-	SpeedKts         float64 `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
-	Clockwise        bool    `json:"clockwise,omitempty"`
+	OffsetNorthMeters float64 `json:"offsetNorthMeters,omitempty"`
+	OffsetEastMeters  float64 `json:"offsetEastMeters,omitempty"`
+	HeadingDeg        float64 `json:"headingDeg,omitempty"`
+	LegLengthMeters   float64 `json:"legLengthMeters"`
+	TurnRadiusMeters  float64 `json:"turnRadiusMeters"`
+	SpeedMPS          float64 `json:"speedMps,omitempty"`
+	SpeedKts          float64 `json:"speedKts,omitempty"` // alternative to speedMps; converted into SpeedMPS during Parse
+	Clockwise         bool    `json:"clockwise,omitempty"`
 }
 
 // SensorConfig describes a track's steerable sensor field of view, kept

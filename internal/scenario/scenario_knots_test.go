@@ -12,7 +12,7 @@ func almostEqual(a, b, tolerance float64) bool {
 
 func TestParse_TrackSpeedKtsConvertedToMPS(t *testing.T) {
 	sc, err := Parse([]byte(`{"tracks": [{
-		"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2,
+		"uid": "t1", "callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2,
 		"speedKts": 100
 	}]}`))
 	if err != nil {
@@ -27,7 +27,7 @@ func TestParse_TrackSpeedKtsConvertedToMPS(t *testing.T) {
 
 func TestParse_TrackRejectsBothSpeedMpsAndSpeedKts(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
-		"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2,
+		"uid": "t1", "callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2,
 		"speedMps": 50, "speedKts": 100
 	}]}`))
 	if err == nil {
@@ -51,7 +51,7 @@ func TestParse_TrackWithoutSpeedKtsLeavesSpeedMpsUnchanged(t *testing.T) {
 func TestParse_OrbitSpeedKtsConvertedToMPS(t *testing.T) {
 	sc, err := Parse([]byte(`{"tracks": [{
 		"uid": "helo-1", "callsign": "HELO01",
-		"orbit": {"centerLat": 1, "centerLon": 2, "radiusMeters": 800, "speedKts": 70}
+		"orbit": {"offsetNorthMeters": 1, "offsetEastMeters": 2, "radiusMeters": 800, "speedKts": 70}
 	}]}`))
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -66,7 +66,7 @@ func TestParse_OrbitSpeedKtsConvertedToMPS(t *testing.T) {
 func TestParse_OrbitRejectsBothSpeedMpsAndSpeedKts(t *testing.T) {
 	_, err := Parse([]byte(`{"tracks": [{
 		"uid": "helo-1", "callsign": "HELO01",
-		"orbit": {"centerLat": 1, "centerLon": 2, "radiusMeters": 800, "speedMps": 30, "speedKts": 70}
+		"orbit": {"offsetNorthMeters": 1, "offsetEastMeters": 2, "radiusMeters": 800, "speedMps": 30, "speedKts": 70}
 	}]}`))
 	if err == nil {
 		t.Fatal("expected error when both orbit speedMps and speedKts are set, got nil")

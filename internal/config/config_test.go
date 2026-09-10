@@ -108,6 +108,50 @@ func TestParseFlags_ScenarioFromFlagFalseWhenNotProvided(t *testing.T) {
 	}
 }
 
+func TestParseFlags_LocationNameIsOptional(t *testing.T) {
+	args := []string{"-server", "192.168.1.50", "-username", "alice", "-password", "s3cret"}
+
+	cfg, err := ParseFlags(args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LocationName != "" {
+		t.Errorf("LocationName = %q, want empty when not provided", cfg.LocationName)
+	}
+}
+
+func TestParseFlags_LocationNameFromFlag(t *testing.T) {
+	args := []string{
+		"-server", "192.168.1.50",
+		"-username", "alice",
+		"-password", "s3cret",
+		"-location", "Austin, TX",
+	}
+
+	cfg, err := ParseFlags(args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LocationName != "Austin, TX" {
+		t.Errorf("LocationName = %q, want %q", cfg.LocationName, "Austin, TX")
+	}
+	if !cfg.LocationFromFlag {
+		t.Error("LocationFromFlag = false, want true when -location is passed on the command line")
+	}
+}
+
+func TestParseFlags_LocationFromFlagFalseWhenNotProvided(t *testing.T) {
+	args := []string{"-server", "192.168.1.50", "-username", "alice", "-password", "s3cret"}
+
+	cfg, err := ParseFlags(args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LocationFromFlag {
+		t.Error("LocationFromFlag = true, want false when -location was never passed")
+	}
+}
+
 func TestParseFlags_MissingAllRequiredFields(t *testing.T) {
 	_, err := ParseFlags([]string{})
 	if err == nil {

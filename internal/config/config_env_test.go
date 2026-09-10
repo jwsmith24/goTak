@@ -82,6 +82,57 @@ func TestParseFlagsWithEnvFile_ScenarioFlagSetsScenarioFromFlagEvenWithEnvValue(
 	}
 }
 
+func TestParseFlagsWithEnvFile_LocationFallsBackToEnvFile(t *testing.T) {
+	envPath := writeTempEnvFile(t, ""+
+		"GOTAK_SERVER=192.168.1.50\n"+
+		"GOTAK_USERNAME=dev\n"+
+		"GOTAK_PASSWORD=devpass\n"+
+		"GOTAK_LOCATION=Austin, TX\n")
+
+	cfg, err := parseFlags(nil, envPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LocationName != "Austin, TX" {
+		t.Errorf("LocationName = %q, want %q", cfg.LocationName, "Austin, TX")
+	}
+}
+
+func TestParseFlagsWithEnvFile_LocationFromEnvDoesNotSetLocationFromFlag(t *testing.T) {
+	envPath := writeTempEnvFile(t, ""+
+		"GOTAK_SERVER=192.168.1.50\n"+
+		"GOTAK_USERNAME=dev\n"+
+		"GOTAK_PASSWORD=devpass\n"+
+		"GOTAK_LOCATION=Austin, TX\n")
+
+	cfg, err := parseFlags(nil, envPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LocationFromFlag {
+		t.Error("LocationFromFlag = true, want false: the value came from .env, not -location")
+	}
+}
+
+func TestParseFlagsWithEnvFile_LocationFlagSetsLocationFromFlagEvenWithEnvValue(t *testing.T) {
+	envPath := writeTempEnvFile(t, ""+
+		"GOTAK_SERVER=192.168.1.50\n"+
+		"GOTAK_USERNAME=dev\n"+
+		"GOTAK_PASSWORD=devpass\n"+
+		"GOTAK_LOCATION=Austin, TX\n")
+
+	cfg, err := parseFlags([]string{"-location", "Fort Campbell, KY"}, envPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.LocationName != "Fort Campbell, KY" {
+		t.Errorf("LocationName = %q, want the flag value", cfg.LocationName)
+	}
+	if !cfg.LocationFromFlag {
+		t.Error("LocationFromFlag = false, want true: -location was passed explicitly")
+	}
+}
+
 func TestParseFlagsWithEnvFile_FlagsOverrideEnvFileValues(t *testing.T) {
 	envPath := writeTempEnvFile(t, ""+
 		"GOTAK_SERVER=192.168.1.50\n"+

@@ -48,10 +48,35 @@ go build -o gotak ./cmd/gotak
 | `-server`    | TAK server IP address or hostname                                  |
 | `-username`  | Username for certificate enrollment                                |
 | `-password`  | Password for certificate enrollment                                |
+| `-location`  | Name of the central location to run from (optional; see below)     |
 | `-scenario`  | Path to a JSON scenario file (optional; see below)                  |
 
 `-server`, `-username`, and `-password` are required; the app reports any
-that are missing. `-scenario` is optional.
+that are missing. `-location` and `-scenario` are optional.
+
+### Choosing a location
+
+Before the scenario menu, `gotak` shows a menu of central locations to
+run the simulation from — every track position in a scenario file is an
+offset from whichever one you pick, so the same scenario can be flown
+near Austin one run and near Fort Campbell the next:
+
+```
++------------------------------------------------------------------------------+
+| Select a location to run from:                                               |
+|                                                                                |
+| > Austin, TX                                                                  |
+|   Fort Campbell, KY                                                          |
+|   Wheeler Army Airfield, HI                                                  |
+|                                                                                |
+| (Use up/down arrows and Enter; q to cancel)                                   |
++------------------------------------------------------------------------------+
+```
+
+It uses the same arrow-key/plain-numbered-list behavior described below
+for the scenario menu. Only an explicit `-location` flag skips it (for
+scripted/non-interactive runs) — a `GOTAK_LOCATION` default from `.env`
+does not; the menu still shows so you can pick interactively each time.
 
 ### Choosing a scenario
 
@@ -98,7 +123,10 @@ its filename in the menu.
 ### Scenario files
 
 A scenario file describes one or more tracks to simulate and how often to
-update them:
+update them. Track positions are given as an offset in meters
+(`offsetNorthMeters`/`offsetEastMeters`) from whichever central location
+you pick in the location menu, not as absolute lat/lon — the same
+scenario file runs near Austin, Fort Campbell, or Wheeler AAF unchanged:
 
 ```json
 {
@@ -108,8 +136,8 @@ update them:
       "uid": "gotak-austin-eagle01",
       "callsign": "EAGLE01",
       "type": "a-f-A",
-      "lat": 30.2747,
-      "lon": -97.76,
+      "offsetNorthMeters": 0,
+      "offsetEastMeters": -1882.19,
       "hae": 1500,
       "courseDeg": 90,
       "speedMps": 120
@@ -117,8 +145,8 @@ update them:
     {
       "uid": "gotak-austin-eagle02",
       "callsign": "EAGLE02",
-      "lat": 30.26,
-      "lon": -97.7404,
+      "offsetNorthMeters": -1634.57,
+      "offsetEastMeters": 0,
       "hae": 2000,
       "courseDeg": 0,
       "speedMps": 100
@@ -132,8 +160,10 @@ update them:
 - `uid` and `callsign` are required and must be unique per track.
 - `type` is the CoT type (e.g. `a-f-A` for friendly air); defaults to
   `a-f-A` when omitted.
-- `lat`/`lon` are decimal degrees; `hae` is height above the ellipsoid in
-  meters; `courseDeg` is true course in degrees clockwise from north.
+- `offsetNorthMeters`/`offsetEastMeters` place the track relative to the
+  selected central location (default `0`, i.e. right at that location);
+  `hae` is height above the ellipsoid in meters; `courseDeg` is true
+  course in degrees clockwise from north.
 - Speed is `speedMps` (meters/second) or `speedKts` (knots) — give one or
   the other, not both; `speedKts` is converted to meters/second when the
   file is loaded.
@@ -152,8 +182,8 @@ go run ./cmd/gotak -server 192.168.1.50 -username dev -password devpass \
 #### Orbiting tracks
 
 A track can loop around a fixed point instead of flying a straight
-course by giving it an `orbit` object instead of `lat`/`lon`/`courseDeg`/
-`speedMps`:
+course by giving it an `orbit` object instead of
+`offsetNorthMeters`/`offsetEastMeters`/`courseDeg`/`speedMps`:
 
 ```json
 {
@@ -162,8 +192,8 @@ course by giving it an `orbit` object instead of `lat`/`lon`/`courseDeg`/
   "type": "a-f-A-M-H",
   "hae": 300,
   "orbit": {
-    "centerLat": 30.2747,
-    "centerLon": -97.7404,
+    "offsetNorthMeters": 0,
+    "offsetEastMeters": 0,
     "radiusMeters": 800,
     "speedMps": 35,
     "clockwise": true,
@@ -172,9 +202,11 @@ course by giving it an `orbit` object instead of `lat`/`lon`/`courseDeg`/
 }
 ```
 
-- `centerLat`/`centerLon` are the orbit's center point; `radiusMeters` is
-  the orbit radius. Tangential ground speed is `speedMps` or `speedKts`
-  (give one or the other); both radius and speed must be positive.
+- `offsetNorthMeters`/`offsetEastMeters` place the orbit's center point
+  relative to the selected central location (default `0`); `radiusMeters`
+  is the orbit radius. Tangential ground speed is `speedMps` or
+  `speedKts` (give one or the other); both radius and speed must be
+  positive.
 - `clockwise` sets rotation direction (default `false`, counterclockwise).
 - `initialBearingDeg` places the track's starting position on the circle,
   as a compass bearing from the center (default `0`, due north of center).
@@ -186,7 +218,7 @@ course by giving it an `orbit` object instead of `lat`/`lon`/`courseDeg`/
 A track can fly a stadium-shaped "race track" pattern — two straight
 legs joined by two 180-degree turns, the classic ISR loiter pattern
 flown by fixed-wing UAS — by giving it a `raceTrack` object instead of
-`lat`/`lon`/`courseDeg`/`speedMps`:
+`offsetNorthMeters`/`offsetEastMeters`/`courseDeg`/`speedMps`:
 
 ```json
 {
@@ -195,8 +227,8 @@ flown by fixed-wing UAS — by giving it a `raceTrack` object instead of
   "type": "a-f-A-M-F-Q",
   "hae": 1800,
   "raceTrack": {
-    "centerLat": 30.2837,
-    "centerLon": -97.7224,
+    "offsetNorthMeters": 1000.75,
+    "offsetEastMeters": 1728.54,
     "headingDeg": 60,
     "legLengthMeters": 3000,
     "turnRadiusMeters": 600,
@@ -206,8 +238,9 @@ flown by fixed-wing UAS — by giving it a `raceTrack` object instead of
 }
 ```
 
-- `centerLat`/`centerLon` are the pattern's center point; `headingDeg` is
-  the compass heading of the two straight legs.
+- `offsetNorthMeters`/`offsetEastMeters` place the pattern's center point
+  relative to the selected central location (default `0`); `headingDeg`
+  is the compass heading of the two straight legs.
 - `legLengthMeters` (length of each straight leg) and `turnRadiusMeters`
   (radius of each 180-degree turn) must both be positive.
 - Ground speed is `speedMps` or `speedKts` (give one or the other); must
@@ -275,14 +308,15 @@ cp .env.example .env
 GOTAK_SERVER=192.168.1.50
 GOTAK_USERNAME=dev
 GOTAK_PASSWORD=devpass
+GOTAK_LOCATION=Austin, TX
 GOTAK_SCENARIO=scenarios/austin-capitol.json
 ```
 
-`GOTAK_SCENARIO` doesn't skip the interactive menu described above — it
-only matters as a fallback for when no menu is shown at all (for
-example, if `scenarios/` isn't found relative to your working
-directory). Use `-scenario` instead when you want to skip the menu and
-run a specific scenario non-interactively.
+Neither `GOTAK_LOCATION` nor `GOTAK_SCENARIO` skips its interactive menu
+described above — they only matter as a fallback for when no menu is
+shown at all (for example, if `scenarios/` isn't found relative to your
+working directory, for the scenario menu). Use `-location`/`-scenario`
+instead when you want to skip a menu and run non-interactively.
 
 Then just run:
 

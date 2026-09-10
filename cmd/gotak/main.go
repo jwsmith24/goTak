@@ -14,6 +14,7 @@ import (
 	"github.com/jwsmith24/goTak/internal/config"
 	"github.com/jwsmith24/goTak/internal/cot"
 	"github.com/jwsmith24/goTak/internal/enroll"
+	"github.com/jwsmith24/goTak/internal/location"
 	"github.com/jwsmith24/goTak/internal/menu"
 	"github.com/jwsmith24/goTak/internal/scenario"
 	"github.com/jwsmith24/goTak/internal/sim"
@@ -29,16 +30,19 @@ const (
 )
 
 // loadTracks returns the tracks to simulate and how often to update them.
-// With no scenario file, it falls back to a single default track so the
-// tool still runs with just server/username/password.
-func loadTracks(scenarioPath string) ([]*sim.Track, time.Duration, error) {
+// Track positions in a scenario file are offsets in meters from origin,
+// the selected central location; the built-in default track (no scenario
+// file) starts at origin itself. With no scenario file, it falls back to
+// a single default track so the tool still runs with just
+// server/username/password.
+func loadTracks(scenarioPath string, origin location.Location) ([]*sim.Track, time.Duration, error) {
 	if scenarioPath == "" {
 		return []*sim.Track{
 			{
 				UID:      defaultTrackUID,
 				Callsign: defaultTrackCallsign,
 				State: sim.TrackState{
-					Lat: 34.05, Lon: -118.25, HAE: 3048,
+					Lat: origin.Lat, Lon: origin.Lon, HAE: 3048,
 					CourseDeg: 90, SpeedMPS: 128,
 				},
 			},
@@ -55,18 +59,20 @@ func loadTracks(scenarioPath string) ([]*sim.Track, time.Duration, error) {
 		var state sim.TrackState
 		switch {
 		case tc.Orbit != nil:
+			centerLat, centerLon := sim.OffsetLatLon(origin.Lat, origin.Lon, tc.Orbit.OffsetEastMeters, tc.Orbit.OffsetNorthMeters)
 			state = sim.NewOrbitTrackState(tc.HAE, sim.OrbitState{
-				CenterLat:            tc.Orbit.CenterLat,
-				CenterLon:            tc.Orbit.CenterLon,
+				CenterLat:            centerLat,
+				CenterLon:            centerLon,
 				RadiusMeters:         tc.Orbit.RadiusMeters,
 				SpeedMPS:             tc.Orbit.SpeedMPS,
 				Clockwise:            tc.Orbit.Clockwise,
 				BearingFromCenterDeg: tc.Orbit.InitialBearingDeg,
 			})
 		case tc.RaceTrack != nil:
+			centerLat, centerLon := sim.OffsetLatLon(origin.Lat, origin.Lon, tc.RaceTrack.OffsetEastMeters, tc.RaceTrack.OffsetNorthMeters)
 			state = sim.NewRaceTrackTrackState(tc.HAE, sim.RaceTrackState{
-				CenterLat:        tc.RaceTrack.CenterLat,
-				CenterLon:        tc.RaceTrack.CenterLon,
+				CenterLat:        centerLat,
+				CenterLon:        centerLon,
 				HeadingDeg:       tc.RaceTrack.HeadingDeg,
 				LegLengthMeters:  tc.RaceTrack.LegLengthMeters,
 				TurnRadiusMeters: tc.RaceTrack.TurnRadiusMeters,
@@ -74,8 +80,9 @@ func loadTracks(scenarioPath string) ([]*sim.Track, time.Duration, error) {
 				Clockwise:        tc.RaceTrack.Clockwise,
 			})
 		default:
+			lat, lon := sim.OffsetLatLon(origin.Lat, origin.Lon, tc.OffsetEastMeters, tc.OffsetNorthMeters)
 			state = sim.TrackState{
-				Lat: tc.Lat, Lon: tc.Lon, HAE: tc.HAE,
+				Lat: lat, Lon: lon, HAE: tc.HAE,
 				CourseDeg: tc.CourseDeg, SpeedMPS: tc.SpeedMPS,
 			}
 		}
@@ -112,6 +119,36 @@ func main() {
 	// buffered-but-unread by an earlier one.
 	stdinReader := bufio.NewReader(os.Stdin)
 
+	// An explicit -location flag always skips the menu, so scripted/
+	// non-interactive runs are unaffected. A GOTAK_LOCATION default from
+	// .env is just a convenience and should not suppress the menu.
+	origin := location.All[0]
+	if cfg.LocationFromFlag {
+		found := false
+		for _, loc := range location.All {
+			if loc.Name == cfg.LocationName {
+				origin = loc
+				found = true
+				break
+			}
+		}
+		if !found {
+			fmt.Fprintf(os.Stderr, "gotak: unknown location %q\n", cfg.LocationName)
+			os.Exit(1)
+		}
+	} else {
+		chosen, err := menu.RunLocationMenu(os.Stdin, stdinReader, os.Stdout, location.All)
+		if errors.Is(err, menu.ErrCancelled) {
+			fmt.Println("Cancelled.")
+			os.Exit(0)
+		}
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "gotak:", err)
+			os.Exit(1)
+		}
+		origin = chosen
+	}
+
 	// An explicit -scenario flag always skips the menu, so scripted/
 	// non-interactive runs are unaffected. A GOTAK_SCENARIO default from
 	// .env is just a convenience and should not suppress the menu.
@@ -130,7 +167,7 @@ func main() {
 		}
 	}
 
-	tracks, tickInterval, err := loadTracks(cfg.ScenarioPath)
+	tracks, tickInterval, err := loadTracks(cfg.ScenarioPath, origin)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "gotak:", err)
 		os.Exit(1)

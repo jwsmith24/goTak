@@ -9,11 +9,33 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
+	"io"
 	"math/big"
 	"net"
+	"strings"
 	"testing"
 	"time"
 )
+
+type deadlineConn struct {
+	writeDeadline time.Time
+	writeErr      error
+}
+
+func (c *deadlineConn) Read([]byte) (int, error) { return 0, io.EOF }
+func (c *deadlineConn) Write(p []byte) (int, error) {
+	if c.writeErr != nil {
+		return 0, c.writeErr
+	}
+	return len(p), nil
+}
+func (c *deadlineConn) Close() error                       { return nil }
+func (c *deadlineConn) LocalAddr() net.Addr                { return nil }
+func (c *deadlineConn) RemoteAddr() net.Addr               { return nil }
+func (c *deadlineConn) SetDeadline(time.Time) error        { return nil }
+func (c *deadlineConn) SetReadDeadline(time.Time) error    { return nil }
+func (c *deadlineConn) SetWriteDeadline(t time.Time) error { c.writeDeadline = t; return nil }
 
 type testPKI struct {
 	caCertPEM     []byte
@@ -150,6 +172,52 @@ func TestSend_DeliversEventOverMTLSConnection(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("timed out waiting for server to receive event")
+	}
+}
+
+func TestSend_SetsWriteDeadline(t *testing.T) {
+	conn := &deadlineConn{}
+	sender := &Sender{conn: conn}
+	before := time.Now()
+
+	if err := sender.Send([]byte("event")); err != nil {
+		t.Fatalf("Send failed: %v", err)
+	}
+	if conn.writeDeadline.Before(before.Add(streamWriteTimeout - time.Second)) {
+		t.Errorf("write deadline = %v, want approximately %v after send", conn.writeDeadline, streamWriteTimeout)
+	}
+	if conn.writeDeadline.After(before.Add(streamWriteTimeout + time.Second)) {
+		t.Errorf("write deadline = %v, want approximately %v after send", conn.writeDeadline, streamWriteTimeout)
+	}
+}
+
+func TestSend_WrapsWriteTimeout(t *testing.T) {
+	timeoutErr := &net.DNSError{IsTimeout: true, Err: "timeout"}
+	sender := &Sender{conn: &deadlineConn{writeErr: timeoutErr}}
+
+	err := sender.Send([]byte("event"))
+	if !errors.Is(err, timeoutErr) || !strings.Contains(err.Error(), "writing CoT event") {
+		t.Fatalf("Send returned %v, want wrapped stream write timeout", err)
+	}
+}
+
+func TestSend_BlockedWriteReturnsAfterDeadline(t *testing.T) {
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
+	sender := &Sender{conn: client, writeTimeout: 50 * time.Millisecond}
+	started := time.Now()
+
+	err := sender.Send([]byte("event"))
+	if err == nil {
+		t.Fatal("Send returned nil, want write timeout")
+	}
+	var netErr net.Error
+	if !errors.As(err, &netErr) || !netErr.Timeout() {
+		t.Fatalf("Send returned %v, want network timeout", err)
+	}
+	if elapsed := time.Since(started); elapsed > time.Second {
+		t.Fatalf("blocked Send returned after %v, want within 1s", elapsed)
 	}
 }
 
@@ -340,5 +408,40 @@ func TestDial_FailsWithoutValidClientCert(t *testing.T) {
 	buf := make([]byte, 1)
 	if _, readErr := sender.conn.Read(buf); readErr == nil {
 		t.Fatal("expected the server to reject a client cert from an untrusted CA")
+	}
+}
+
+func TestDial_CanceledContextStopsInFlightConnection(t *testing.T) {
+	pki := newTestPKI(t)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("starting listener: %v", err)
+	}
+	defer listener.Close()
+	accepted := make(chan net.Conn, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err == nil {
+			accepted <- conn
+		}
+	}()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := Dial(ctx, listener.Addr().String(), pki.clientCertPEM, pki.clientKeyPEM, [][]byte{pki.caCertPEM})
+		done <- err
+	}()
+	conn := <-accepted
+	defer conn.Close()
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("Dial returned %v, want context.Canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Dial did not stop after context cancellation")
 	}
 }

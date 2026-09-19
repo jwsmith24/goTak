@@ -169,3 +169,40 @@ func TestSignCSR_Unauthorized(t *testing.T) {
 		t.Fatal("expected error for 401 response, got nil")
 	}
 }
+
+func TestSignCSR_AcceptsResponseAtSizeLimit(t *testing.T) {
+	signedCert := fixtureCertBase64(t, "dev")
+	body, err := json.Marshal(map[string]string{"signedCert": signedCert})
+	if err != nil {
+		t.Fatalf("marshaling response: %v", err)
+	}
+	body = append(body, []byte(strings.Repeat(" ", maxSignResponseBytes-len(body)))...)
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write(body)
+	}))
+	defer srv.Close()
+
+	kp, err := NewCSR("dev", "TAK", "TAK")
+	if err != nil {
+		t.Fatalf("generating CSR: %v", err)
+	}
+	if _, err := SignCSR(context.Background(), srv.Client(), srv.URL, "dev", "devpass", kp.CSRPEM, "uid"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestSignCSR_RejectsOversizedResponse(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(strings.Repeat("x", maxSignResponseBytes+1)))
+	}))
+	defer srv.Close()
+
+	kp, err := NewCSR("dev", "TAK", "TAK")
+	if err != nil {
+		t.Fatalf("generating CSR: %v", err)
+	}
+	_, err = SignCSR(context.Background(), srv.Client(), srv.URL, "dev", "devpass", kp.CSRPEM, "uid")
+	if err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Fatalf("SignCSR returned %v, want response-too-large error", err)
+	}
+}

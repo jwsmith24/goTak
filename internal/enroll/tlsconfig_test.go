@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -66,5 +67,34 @@ func TestFetchTLSConfig_Unauthorized(t *testing.T) {
 	_, err := FetchTLSConfig(context.Background(), srv.Client(), srv.URL, "dev", "wrongpass")
 	if err == nil {
 		t.Fatal("expected error for 401 response, got nil")
+	}
+}
+
+func TestFetchTLSConfig_AcceptsResponseAtSizeLimit(t *testing.T) {
+	body := `<certificateConfig><nameEntries><nameEntry name="O" value="TAK"/></nameEntries></certificateConfig>`
+	body += strings.Repeat(" ", maxTLSConfigResponseBytes-len(body))
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(body))
+	}))
+	defer srv.Close()
+
+	cfg, err := FetchTLSConfig(context.Background(), srv.Client(), srv.URL, "dev", "devpass")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Organization != "TAK" {
+		t.Errorf("Organization = %q, want TAK", cfg.Organization)
+	}
+}
+
+func TestFetchTLSConfig_RejectsOversizedResponse(t *testing.T) {
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(strings.Repeat("x", maxTLSConfigResponseBytes+1)))
+	}))
+	defer srv.Close()
+
+	_, err := FetchTLSConfig(context.Background(), srv.Client(), srv.URL, "dev", "devpass")
+	if err == nil || !strings.Contains(err.Error(), "too large") {
+		t.Fatalf("FetchTLSConfig returned %v, want response-too-large error", err)
 	}
 }

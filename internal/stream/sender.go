@@ -10,12 +10,16 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"time"
 )
+
+const streamWriteTimeout = 10 * time.Second
 
 // Sender is a persistent mTLS connection to a TAK server's CoT streaming
 // port, over which CoT XML events are written.
 type Sender struct {
-	conn net.Conn
+	conn         net.Conn
+	writeTimeout time.Duration
 }
 
 // Dial opens an mTLS connection to addr (host:port, typically the
@@ -56,13 +60,23 @@ func Dial(ctx context.Context, addr string, clientCertPEM, clientKeyPEM []byte, 
 		return nil, fmt.Errorf("stream: dialing %s: %w", addr, err)
 	}
 
-	return &Sender{conn: conn}, nil
+	return &Sender{conn: conn, writeTimeout: streamWriteTimeout}, nil
 }
 
 // Send writes a single CoT XML event to the connection.
 func (s *Sender) Send(eventXML []byte) error {
+	timeout := s.writeTimeout
+	if timeout == 0 {
+		timeout = streamWriteTimeout
+	}
+	if err := s.conn.SetWriteDeadline(time.Now().Add(timeout)); err != nil {
+		return fmt.Errorf("stream: setting CoT write deadline: %w", err)
+	}
 	_, err := s.conn.Write(eventXML)
-	return err
+	if err != nil {
+		return fmt.Errorf("stream: writing CoT event: %w", err)
+	}
+	return nil
 }
 
 // Close closes the underlying connection.

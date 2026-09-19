@@ -27,6 +27,8 @@ const (
 	defaultTrackUID      = "gotak-sim-1"
 	defaultTrackCallsign = "SIM01"
 	scenariosDir         = "scenarios"
+	enrollmentTimeout    = 30 * time.Second
+	streamConnectTimeout = 30 * time.Second
 )
 
 // loadTracks returns the tracks to simulate and how often to update them.
@@ -173,10 +175,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	baseURL := enroll.DefaultBaseURL(cfg.ServerAddress)
 	fmt.Printf("Enrolling with %s as %s...\n", baseURL, cfg.Username)
 
-	result, err := enroll.Enroll(context.Background(), enroll.InsecureHTTPClient(), baseURL, cfg.Username, cfg.Password)
+	enrollCtx, cancelEnroll := context.WithTimeout(ctx, enrollmentTimeout)
+	result, err := enroll.Enroll(enrollCtx, enroll.InsecureHTTPClient(), baseURL, cfg.Username, cfg.Password)
+	cancelEnroll()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "gotak: enrollment failed:", err)
 		os.Exit(1)
@@ -185,15 +192,14 @@ func main() {
 
 	streamAddr := cfg.ServerAddress + ":" + cotStreamPort
 	fmt.Printf("Connecting to CoT stream at %s...\n", streamAddr)
-	sender, err := stream.Dial(context.Background(), streamAddr, result.ClientCertPEM, result.PrivateKeyPEM, result.CACertsPEM)
+	connectCtx, cancelConnect := context.WithTimeout(ctx, streamConnectTimeout)
+	sender, err := stream.Dial(connectCtx, streamAddr, result.ClientCertPEM, result.PrivateKeyPEM, result.CACertsPEM)
+	cancelConnect()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "gotak: connecting to CoT stream:", err)
 		os.Exit(1)
 	}
 	defer sender.Close()
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
 
 	ticker := time.NewTicker(tickInterval)
 	defer ticker.Stop()

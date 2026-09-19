@@ -50,8 +50,13 @@ func SignCSR(ctx context.Context, httpClient *http.Client, baseURL, username, pa
 		return SignResult{}, fmt.Errorf("enroll: signing CSR: unexpected status %d", resp.StatusCode)
 	}
 
+	body, err := readResponseBody(resp.Body, maxSignResponseBytes, "signing")
+	if err != nil {
+		return SignResult{}, err
+	}
+
 	var fields map[string]string
-	if err := json.NewDecoder(resp.Body).Decode(&fields); err != nil {
+	if err := json.Unmarshal(body, &fields); err != nil {
 		return SignResult{}, fmt.Errorf("enroll: parsing sign response: %w", err)
 	}
 

@@ -5,9 +5,11 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func newFakeTAKServer(t *testing.T, username, password string) *httptest.Server {
@@ -97,5 +99,57 @@ func TestInsecureHTTPClient_SkipsTLSVerification(t *testing.T) {
 	}
 	if transport.TLSClientConfig == nil || !transport.TLSClientConfig.InsecureSkipVerify {
 		t.Error("expected InsecureSkipVerify to be true, since enrollment has no preconfigured trust store")
+	}
+	if client.Timeout <= 0 {
+		t.Errorf("Timeout = %v, want a finite enrollment timeout", client.Timeout)
+	}
+}
+
+func TestEnroll_CanceledContextStopsInFlightRequest(t *testing.T) {
+	started := make(chan struct{})
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-r.Context().Done()
+	}))
+	defer srv.Close()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		_, err := Enroll(ctx, srv.Client(), srv.URL, "dev", "devpass")
+		done <- err
+	}()
+	<-started
+	cancel()
+
+	if err := <-done; !errors.Is(err, context.Canceled) {
+		t.Fatalf("Enroll returned %v, want context.Canceled", err)
+	}
+}
+
+func TestEnroll_HTTPTimeoutStopsInFlightRequest(t *testing.T) {
+	started := make(chan struct{})
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		close(started)
+		<-r.Context().Done()
+	}))
+	defer srv.Close()
+
+	client := srv.Client()
+	client.Timeout = 50 * time.Millisecond
+	done := make(chan error, 1)
+	go func() {
+		_, err := Enroll(context.Background(), client, srv.URL, "dev", "devpass")
+		done <- err
+	}()
+	<-started
+
+	select {
+	case err := <-done:
+		if err == nil || !errors.Is(err, context.DeadlineExceeded) {
+			t.Fatalf("Enroll returned %v, want context deadline exceeded", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Enroll did not stop after HTTP client timeout")
 	}
 }

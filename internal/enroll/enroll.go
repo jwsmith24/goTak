@@ -4,7 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"net/http"
+	"time"
 )
+
+const enrollmentRequestTimeout = 30 * time.Second
 
 // EnrollmentResult holds everything needed to open an mTLS connection to
 // the TAK server after a successful enrollment.
@@ -27,6 +30,7 @@ func DefaultBaseURL(serverAddress string) string {
 // once the server hands back its CA chain.
 func InsecureHTTPClient() *http.Client {
 	return &http.Client{
+		Timeout: enrollmentRequestTimeout,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // intentional: no preconfigured trust store exists yet
 		},

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/xml"
 	"fmt"
-	"io"
 	"net/http"
 )
 
@@ -49,7 +48,7 @@ func FetchTLSConfig(ctx context.Context, httpClient *http.Client, baseURL, usern
 		return TLSConfig{}, fmt.Errorf("enroll: fetching TLS config: unexpected status %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	body, err := readResponseBody(resp.Body, maxTLSConfigResponseBytes, "TLS config")
 	if err != nil {
 		return TLSConfig{}, err
 	}

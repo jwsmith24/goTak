@@ -127,6 +127,9 @@ func Parse(data []byte) (Scenario, error) {
 		if tr.Callsign == "" {
 			return Scenario{}, fmt.Errorf("scenario: track %q: callsign is required", tr.UID)
 		}
+		if tr.Orbit != nil && tr.RaceTrack != nil {
+			return Scenario{}, fmt.Errorf("scenario: track %q: specify only one of orbit or raceTrack", tr.UID)
+		}
 
 		if tr.SpeedMPS != 0 && tr.SpeedKts != 0 {
 			return Scenario{}, fmt.Errorf("scenario: track %q: specify only one of speedMps or speedKts", tr.UID)

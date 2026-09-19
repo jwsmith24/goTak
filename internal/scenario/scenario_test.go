@@ -137,6 +137,23 @@ func TestParse_RejectsDuplicateUID(t *testing.T) {
 	}
 }
 
+func TestParse_RejectsMultipleMotionModels(t *testing.T) {
+	_, err := Parse([]byte(`{"tracks": [{
+		"uid": "t1",
+		"callsign": "C1",
+		"orbit": {"radiusMeters": 100, "speedMps": 10},
+		"raceTrack": {"legLengthMeters": 1000, "turnRadiusMeters": 100, "speedMps": 20}
+	}]}`))
+	if err == nil {
+		t.Fatal("expected error when both orbit and raceTrack are set, got nil")
+	}
+	for _, want := range []string{"t1", "orbit", "raceTrack"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("error = %q, want it to mention %q", err.Error(), want)
+		}
+	}
+}
+
 func TestParse_InvalidJSON(t *testing.T) {
 	_, err := Parse([]byte(`not json`))
 	if err == nil {

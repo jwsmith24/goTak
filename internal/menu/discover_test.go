@@ -16,13 +16,13 @@ func writeFile(t *testing.T, dir, name, contents string) {
 
 const validOneTrack = `{
 	"description": "A single test track",
-	"tracks": [{"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2}]
+	"tracks": [{"uid": "t1", "callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2}]
 }`
 
 const validTwoTracks = `{
 	"tracks": [
-		{"uid": "t1", "callsign": "C1", "lat": 1, "lon": 2},
-		{"uid": "t2", "callsign": "C2", "lat": 3, "lon": 4}
+		{"uid": "t1", "callsign": "C1", "offsetNorthMeters": 1, "offsetEastMeters": 2},
+		{"uid": "t2", "callsign": "C2", "offsetNorthMeters": 3, "offsetEastMeters": 4}
 	]
 }`
 

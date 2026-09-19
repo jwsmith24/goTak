@@ -3,8 +3,10 @@
 package scenario
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"time"
 )
@@ -104,7 +106,15 @@ func Load(path string) (Scenario, error) {
 // interval when one isn't specified.
 func Parse(data []byte) (Scenario, error) {
 	var sc Scenario
-	if err := json.Unmarshal(data, &sc); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&sc); err != nil {
+		return Scenario{}, fmt.Errorf("scenario: parsing JSON: %w", err)
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		if err == nil {
+			err = fmt.Errorf("multiple JSON values")
+		}
 		return Scenario{}, fmt.Errorf("scenario: parsing JSON: %w", err)
 	}
 

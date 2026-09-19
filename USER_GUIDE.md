@@ -118,6 +118,8 @@ The repository includes:
 
 A scenario controls the common update interval and one or more tracks. Positions use east/north meter offsets from the selected location, not fixed latitude/longitude.
 
+Scenario JSON is strict: every field must use a name listed below. Unknown or misspelled fields cause the entire scenario to be rejected instead of being silently ignored. A file must contain exactly one JSON object.
+
 ```json
 {
   "description": "Two tracks crossing near the selected origin",
@@ -137,21 +139,30 @@ A scenario controls the common update interval and one or more tracks. Positions
 }
 ```
 
-Common fields:
+Top-level fields:
 
-| Field | Meaning |
-|---|---|
-| `uid` | Required identifier, unique within the scenario. |
-| `callsign` | Required display callsign. |
-| `type` | CoT type; defaults to friendly air (`a-f-A`). |
-| `offsetNorthMeters` | Northward offset from the selected origin; defaults to `0`. |
-| `offsetEastMeters` | Eastward offset from the selected origin; defaults to `0`. |
-| `hae` | Height above the ellipsoid in meters. |
-| `courseDeg` | True course in degrees clockwise from north. |
-| `speedMps` | Ground speed in meters per second. |
-| `speedKts` | Alternative ground speed in knots. |
+| Field | Required | Meaning |
+|---|---:|---|
+| `description` | No | Text displayed beside the filename in the scenario menu. |
+| `tickIntervalSeconds` | No | Common update interval; defaults to 2 seconds when omitted or nonpositive. |
+| `tracks` | Yes | Nonempty array of track objects. |
 
-`tickIntervalSeconds` defaults to 2 seconds when omitted or nonpositive.
+Track fields:
+
+| Field | Required | Meaning |
+|---|---:|---|
+| `uid` | Yes | Identifier, unique within the scenario. |
+| `callsign` | Yes | Display callsign. |
+| `type` | No | CoT type; defaults to friendly air (`a-f-A`). |
+| `offsetNorthMeters` | No | Straight-track northward offset from the selected origin; defaults to `0`. |
+| `offsetEastMeters` | No | Straight-track eastward offset from the selected origin; defaults to `0`. |
+| `hae` | No | Height above the ellipsoid in meters; defaults to `0`. |
+| `courseDeg` | No | Straight-track true course clockwise from north; defaults to `0`. |
+| `speedMps` | No | Straight-track ground speed in meters per second. |
+| `speedKts` | No | Alternative straight-track ground speed in knots. |
+| `orbit` | No | Circular-orbit configuration described below. |
+| `raceTrack` | No | Race-track configuration described below. |
+| `sensor` | No | Sensor field-of-view configuration described below. |
 
 Speed can be specified as `speedMps` or `speedKts`, but not both. Knots are converted to meters per second when the scenario is loaded.
 
@@ -200,6 +211,20 @@ Use an `orbit` object:
 
 The radius and speed must be positive. The offsets locate the orbit center. `initialBearingDeg` is a compass bearing from that center and defaults to north. `clockwise` defaults to `false`.
 
+Orbit fields:
+
+| Field | Required | Meaning |
+|---|---:|---|
+| `offsetNorthMeters` | No | Northward orbit-center offset; defaults to `0`. |
+| `offsetEastMeters` | No | Eastward orbit-center offset; defaults to `0`. |
+| `radiusMeters` | Yes | Positive orbit radius. |
+| `speedMps` | Conditional | Positive tangential speed in meters per second. |
+| `speedKts` | Conditional | Positive tangential speed in knots; mutually exclusive with `speedMps`. |
+| `clockwise` | No | Rotation direction; defaults to counterclockwise. |
+| `initialBearingDeg` | No | Initial compass bearing from the center; defaults to north. |
+
+Exactly one positive speed field is required.
+
 ### Race-Track Pattern
 
 Use a `raceTrack` object for two straight legs joined by semicircular turns:
@@ -224,6 +249,21 @@ Use a `raceTrack` object for two straight legs joined by semicircular turns:
 
 Leg length, turn radius, and speed must be positive. The offsets locate the pattern center. `headingDeg` controls the straight-leg direction, and `clockwise` mirrors the pattern.
 
+Race-track fields:
+
+| Field | Required | Meaning |
+|---|---:|---|
+| `offsetNorthMeters` | No | Northward pattern-center offset; defaults to `0`. |
+| `offsetEastMeters` | No | Eastward pattern-center offset; defaults to `0`. |
+| `headingDeg` | No | True heading of the straight legs; defaults to north. |
+| `legLengthMeters` | Yes | Positive length of each straight leg. |
+| `turnRadiusMeters` | Yes | Positive radius of each semicircular turn. |
+| `speedMps` | Conditional | Positive ground speed in meters per second. |
+| `speedKts` | Conditional | Positive ground speed in knots; mutually exclusive with `speedMps`. |
+| `clockwise` | No | Mirrors the pattern when true; defaults to `false`. |
+
+Exactly one positive speed field is required.
+
 ### Sensor Field of View
 
 Add a `sensor` object to any track:
@@ -240,6 +280,14 @@ Add a `sensor` object to any track:
 
 `fovDeg` and `rangeMeters` must be positive. Sensor azimuth follows the track's current course plus `azimuthOffsetDeg`, including while the track turns through an orbit or race-track pattern.
 
+Sensor fields:
+
+| Field | Required | Meaning |
+|---|---:|---|
+| `fovDeg` | Yes | Positive horizontal field of view in degrees. |
+| `rangeMeters` | Yes | Positive sensor range in meters. |
+| `azimuthOffsetDeg` | No | Offset from current track course; defaults to `0`. |
+
 ## Connection Behavior
 
 Enrollment uses port `8446` and intentionally disables server-certificate verification while bootstrapping trust. Because username/password credentials and the returned CA chain cross that unauthenticated TLS channel, enroll only over a trusted network or after establishing the server's identity out of band. The returned CA chain is then used to verify the TAK server on the port `8089` mTLS stream.
@@ -253,4 +301,4 @@ Enrollment and stream connection attempts time out after 30 seconds. Individual 
 - **No scenario menu:** run from the repository root so `scenarios/` can be discovered, or pass `-scenario` explicitly.
 - **Enrollment failure:** confirm credentials and access to port `8446`.
 - **Stream connection failure:** confirm access to port `8089` and that enrollment returned a valid CA chain and client certificate.
-- **Scenario parse failure:** check required identities, unique UIDs, positive orbit/race-track/sensor values, exclusive speed units, and that `orbit` and `raceTrack` are not both set.
+- **Scenario parse failure:** check field names against the schema above, required identities, unique UIDs, positive orbit/race-track/sensor values, exclusive speed units, and that `orbit` and `raceTrack` are not both set.

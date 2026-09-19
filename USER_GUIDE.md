@@ -43,7 +43,7 @@ go run ./cmd/gotak \
   -username dev \
   -password devpass \
   -location "Austin, TX" \
-  -scenario scenarios/austin-capitol.json
+  -scenario scenarios/austin-capitol-helicopters.json
 ```
 
 Available flags:
@@ -72,7 +72,7 @@ Set the values:
 GOTAK_SERVER=192.168.1.50
 GOTAK_USERNAME=dev
 GOTAK_PASSWORD=devpass
-GOTAK_SCENARIO=scenarios/austin-capitol.json
+GOTAK_SCENARIO=scenarios/austin-capitol-helicopters.json
 ```
 
 Then run:
@@ -123,7 +123,6 @@ Without an explicit `-scenario`, goTak discovers valid `.json` files in `scenari
 
 The repository includes:
 
-- `scenarios/austin-capitol.json`: two crossing air tracks.
 - `scenarios/austin-capitol-helicopters.json`: helicopters, UAS, friendly ground units, and hostile infantry using multiple supported motion models.
 
 ## Write a Scenario

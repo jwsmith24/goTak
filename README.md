@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/gotak-logo.svg" alt="goTak gopher shield" width="320">
+</p>
+
 # goTak
 
 goTak is a lightweight Go CLI for development and testing against a TAK server. It enrolls for an in-memory client certificate, opens a verified mTLS Cursor-on-Target (CoT) stream, and sends simulated straight, orbiting, or race-track positions until stopped.
@@ -31,7 +35,7 @@ go run ./cmd/gotak \
   -username dev \
   -password devpass \
   -location "Austin, TX" \
-  -scenario scenarios/austin-capitol.json
+  -scenario scenarios/austin-capitol-helicopters.json
 ```
 
 To use `.env`, create it from the example and run without connection flags:

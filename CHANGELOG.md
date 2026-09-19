@@ -15,6 +15,8 @@ Notable changes are documented here in reverse chronological order. Releases use
 
 ### Changed
 
+- Removed the redundant `austin-capitol.json` example; documentation and tests now use the composite helicopter scenario.
+- Added an original TAK-inspired gopher shield and README branding.
 - Extracted the CLI lifecycle into testable orchestration while keeping signal interception after menu and scenario preparation.
 - Scenario JSON parsing is now strict: field names are exact and case-sensitive, while unknown fields, duplicate fields, and additional trailing JSON values are rejected.
 - Added focused coverage for in-flight enrollment cancellation and timeout, TLS handshake cancellation, oversized enrollment responses, and blocked stream writes.

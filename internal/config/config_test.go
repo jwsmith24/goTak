@@ -81,15 +81,15 @@ func TestParseFlags_ScenarioPathFromFlag(t *testing.T) {
 		"-server", "192.168.1.50",
 		"-username", "alice",
 		"-password", "s3cret",
-		"-scenario", "scenarios/austin-capitol.json",
+		"-scenario", "scenarios/austin-capitol-helicopters.json",
 	}
 
 	cfg, err := ParseFlags(args)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.ScenarioPath != "scenarios/austin-capitol.json" {
-		t.Errorf("ScenarioPath = %q, want %q", cfg.ScenarioPath, "scenarios/austin-capitol.json")
+	if cfg.ScenarioPath != "scenarios/austin-capitol-helicopters.json" {
+		t.Errorf("ScenarioPath = %q, want %q", cfg.ScenarioPath, "scenarios/austin-capitol-helicopters.json")
 	}
 	if !cfg.ScenarioFromFlag {
 		t.Error("ScenarioFromFlag = false, want true when -scenario is passed on the command line")

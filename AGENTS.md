@@ -25,7 +25,7 @@ Keep the tool small and easy to build. Prefer the Go standard library and existi
 - Only an explicitly supplied `-location` or `-scenario` skips its menu. Values from `.env` remain fallbacks and do not suppress interactive selection.
 - Menus support raw-terminal arrow navigation and a non-terminal numbered fallback. Preserve both paths and the shared buffered stdin reader across consecutive prompts.
 - Scenario coordinates are east/north meter offsets from a selected named origin, not fixed latitude/longitude. Keep scenarios portable between locations.
-- Keep each scenario track to one motion model: straight, orbit, or race track. Scenario parsing owns validation, defaults, and knots-to-meters-per-second conversion.
+- Keep `orbit` and `raceTrack` mutually exclusive. Either patterned model takes precedence over top-level straight-motion fields, which are ignored. Scenario parsing owns validation, defaults, and knots-to-meters-per-second conversion.
 - On every tick, each track advances first, then emits one CoT event. Sensor azimuth follows the track's current course plus its configured offset.
 - Enrollment on port `8446` intentionally skips server verification only while bootstrapping trust. The CoT stream on port `8089` must use the issued client certificate and verify the server with the CA chain returned by enrollment.
 - Keep secrets and generated private keys in memory; do not log or persist them.
@@ -35,7 +35,8 @@ Keep the tool small and easy to build. Prefer the Go standard library and existi
 - Make the smallest coherent change and keep package boundaries aligned with the code map above.
 - Use standard-library interfaces and small local abstractions for test seams; avoid frameworks, dependency injection containers, and speculative compatibility layers.
 - Add or update focused table-driven tests beside changed behavior. Network code should use local test servers, fake connections, or narrow interfaces rather than a live TAK server.
-- If scenario behavior or CLI usage changes, update `README.md`, `.env.example`, and shipped scenario files when applicable.
+- Keep `README.md`, `USER_GUIDE.md`, and `CHANGELOG.md` current with every change. README stays a concise overview and run entry point; detailed user instructions belong in USER_GUIDE; CHANGELOG records user-visible behavior and notable fixes under reverse-chronological semantic versions and release dates.
+- If scenario behavior or CLI usage changes, also update `.env.example` and shipped scenario files when applicable.
 - Format Go changes with `gofmt`.
 
 ## Validation

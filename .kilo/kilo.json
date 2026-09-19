@@ -1,0 +1,14 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "mcp": {
+    "palantir-mcp": {
+      "type": "local",
+      "command": ["npx", "-y", "palantir-mcp@latest", "--foundry-api-url", "https://vantage.army.mil"],
+      "environment": { "FOUNDRY_TOKEN": "${FOUNDRY_TOKEN}" },
+      "enabled": true
+    }
+  },
+  "skills": {
+    "paths": ["./skills"]
+  }
+}

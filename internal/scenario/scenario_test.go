@@ -211,6 +211,57 @@ func TestParse_RejectsTrailingJSON(t *testing.T) {
 	}
 }
 
+func TestParse_RejectsIncorrectFieldCase(t *testing.T) {
+	tests := []struct {
+		name string
+		json string
+	}{
+		{name: "scenario", json: `{"Tracks": [{"uid": "t1", "callsign": "C1"}]}`},
+		{name: "track", json: `{"tracks": [{"UID": "t1", "callsign": "C1"}]}`},
+		{name: "nested", json: `{"tracks": [{"uid": "t1", "callsign": "C1", "orbit": {"RadiusMeters": 100, "speedMps": 10}}]}`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := Parse([]byte(tt.json)); err == nil {
+				t.Fatal("expected error for incorrectly cased field, got nil")
+			}
+		})
+	}
+}
+
+func TestParse_RejectsDuplicateFields(t *testing.T) {
+	_, err := Parse([]byte(`{"tracks": [{"uid": "t1", "uid": "t2", "callsign": "C1"}]}`))
+	if err == nil || !strings.Contains(err.Error(), "duplicate") || !strings.Contains(err.Error(), "uid") {
+		t.Fatalf("Parse returned %v, want duplicate-field error mentioning uid", err)
+	}
+}
+
+func TestParse_RejectsUnexpectedNestedContainers(t *testing.T) {
+	tests := []struct {
+		name string
+		json string
+	}{
+		{name: "root array", json: `[]`},
+		{name: "root scalar", json: `42`},
+		{name: "root null", json: `null`},
+		{name: "tracks object", json: `{"tracks": {}}`},
+		{name: "nested track array", json: `{"tracks": [[{"uid": "t1", "callsign": "C1"}]]}`},
+		{name: "scalar object", json: `{"tracks": [{"uid": {}, "callsign": "C1"}]}`},
+		{name: "scalar array", json: `{"tracks": [{"uid": [], "callsign": "C1"}]}`},
+		{name: "orbit array", json: `{"tracks": [{"uid": "t1", "callsign": "C1", "orbit": []}]}`},
+		{name: "truncated object", json: `{"tracks": [{"uid": "t1"`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if _, err := Parse([]byte(tt.json)); err == nil {
+				t.Fatal("expected error for malformed scenario shape, got nil")
+			}
+		})
+	}
+}
+
 func TestLoad_ReadsFromFile(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "scenario.json")
 	if err := os.WriteFile(path, []byte(twoTrackJSON), 0o600); err != nil {

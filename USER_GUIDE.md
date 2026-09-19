@@ -118,7 +118,7 @@ The repository includes:
 
 A scenario controls the common update interval and one or more tracks. Positions use east/north meter offsets from the selected location, not fixed latitude/longitude.
 
-Scenario JSON is strict: every field must use a name listed below. Unknown or misspelled fields cause the entire scenario to be rejected instead of being silently ignored. A file must contain exactly one JSON object.
+Scenario JSON is strict: every field must use the exact case-sensitive name listed below. Unknown, duplicated, or misspelled fields cause the entire scenario to be rejected instead of being silently ignored. A file must contain exactly one JSON object.
 
 ```json
 {
@@ -164,7 +164,7 @@ Track fields:
 | `raceTrack` | No | Race-track configuration described below. |
 | `sensor` | No | Sensor field-of-view configuration described below. |
 
-Speed can be specified as `speedMps` or `speedKts`, but not both. Knots are converted to meters per second when the scenario is loaded.
+Speed can be specified as `speedMps` or `speedKts`. If both values are nonzero, the scenario is rejected. Knots are converted to meters per second when the scenario is loaded.
 
 The `orbit` and `raceTrack` objects are mutually exclusive. When either is present, its configuration determines position and motion; top-level straight-motion offsets, course, and speed are ignored.
 

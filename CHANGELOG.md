@@ -14,7 +14,7 @@ Notable changes are documented here in reverse chronological order. Releases use
 
 ### Changed
 
-- Scenario JSON parsing is now strict: unknown fields and additional trailing JSON values are rejected instead of ignored.
+- Scenario JSON parsing is now strict: field names are exact and case-sensitive, while unknown fields, duplicate fields, and additional trailing JSON values are rejected.
 - Added focused coverage for in-flight enrollment cancellation and timeout, TLS handshake cancellation, oversized enrollment responses, and blocked stream writes.
 - Kept signal interception after interactive selection so normal SIGINT/SIGTERM termination remains available while menus await input.
 - Added `AGENTS.md` with durable architecture, security, dependency, testing, and documentation guidance.

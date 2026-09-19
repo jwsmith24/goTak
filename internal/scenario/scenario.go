@@ -88,6 +88,38 @@ type Scenario struct {
 	Tracks              []TrackConfig `json:"tracks"`
 }
 
+type jsonSchema struct {
+	fields  map[string]*jsonSchema
+	element *jsonSchema
+}
+
+var (
+	scalarJSON   = &jsonSchema{}
+	sensorSchema = &jsonSchema{fields: map[string]*jsonSchema{
+		"fovDeg": scalarJSON, "rangeMeters": scalarJSON, "azimuthOffsetDeg": scalarJSON,
+	}}
+	orbitSchema = &jsonSchema{fields: map[string]*jsonSchema{
+		"offsetNorthMeters": scalarJSON, "offsetEastMeters": scalarJSON,
+		"radiusMeters": scalarJSON, "speedMps": scalarJSON, "speedKts": scalarJSON,
+		"clockwise": scalarJSON, "initialBearingDeg": scalarJSON,
+	}}
+	raceTrackSchema = &jsonSchema{fields: map[string]*jsonSchema{
+		"offsetNorthMeters": scalarJSON, "offsetEastMeters": scalarJSON,
+		"headingDeg": scalarJSON, "legLengthMeters": scalarJSON, "turnRadiusMeters": scalarJSON,
+		"speedMps": scalarJSON, "speedKts": scalarJSON, "clockwise": scalarJSON,
+	}}
+	trackSchema = &jsonSchema{fields: map[string]*jsonSchema{
+		"uid": scalarJSON, "callsign": scalarJSON, "type": scalarJSON,
+		"offsetNorthMeters": scalarJSON, "offsetEastMeters": scalarJSON, "hae": scalarJSON,
+		"courseDeg": scalarJSON, "speedMps": scalarJSON, "speedKts": scalarJSON,
+		"orbit": orbitSchema, "raceTrack": raceTrackSchema, "sensor": sensorSchema,
+	}}
+	scenarioSchema = &jsonSchema{fields: map[string]*jsonSchema{
+		"description": scalarJSON, "tickIntervalSeconds": scalarJSON,
+		"tracks": {element: trackSchema},
+	}}
+)
+
 // TickInterval returns how often each track's position should be updated.
 func (s Scenario) TickInterval() time.Duration {
 	return time.Duration(s.TickIntervalSeconds * float64(time.Second))
@@ -105,6 +137,10 @@ func Load(path string) (Scenario, error) {
 // Parse validates and parses scenario JSON, applying a default tick
 // interval when one isn't specified.
 func Parse(data []byte) (Scenario, error) {
+	if err := validateJSONSchema(data); err != nil {
+		return Scenario{}, fmt.Errorf("scenario: parsing JSON: %w", err)
+	}
+
 	var sc Scenario
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.DisallowUnknownFields()
@@ -196,4 +232,73 @@ func Parse(data []byte) (Scenario, error) {
 	}
 
 	return sc, nil
+}
+
+func validateJSONSchema(data []byte) error {
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	if err := validateJSONValue(decoder, scenarioSchema); err != nil {
+		return err
+	}
+	if _, err := decoder.Token(); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("multiple JSON values")
+		}
+		return err
+	}
+	return nil
+}
+
+func validateJSONValue(decoder *json.Decoder, schema *jsonSchema) error {
+	token, err := decoder.Token()
+	if err != nil {
+		return err
+	}
+	delim, ok := token.(json.Delim)
+	if !ok {
+		return nil
+	}
+
+	switch delim {
+	case '{':
+		if schema == nil || schema.fields == nil {
+			return fmt.Errorf("unexpected JSON object")
+		}
+		seen := make(map[string]bool)
+		for decoder.More() {
+			keyToken, err := decoder.Token()
+			if err != nil {
+				return err
+			}
+			key, ok := keyToken.(string)
+			if !ok {
+				return fmt.Errorf("object field name is not a string")
+			}
+			if seen[key] {
+				return fmt.Errorf("duplicate field %q", key)
+			}
+			seen[key] = true
+			child, exists := schema.fields[key]
+			if !exists {
+				return fmt.Errorf("unknown field %q", key)
+			}
+			if err := validateJSONValue(decoder, child); err != nil {
+				return err
+			}
+		}
+		_, err = decoder.Token()
+		return err
+	case '[':
+		if schema == nil || schema.element == nil {
+			return fmt.Errorf("unexpected JSON array")
+		}
+		for decoder.More() {
+			if err := validateJSONValue(decoder, schema.element); err != nil {
+				return err
+			}
+		}
+		_, err = decoder.Token()
+		return err
+	default:
+		return fmt.Errorf("unexpected JSON delimiter %q", delim)
+	}
 }

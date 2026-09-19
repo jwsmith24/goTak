@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="assets/gotak-logo.svg" alt="goTak gopher shield" width="320">
-</p>
-
 # goTak
 
 goTak is a lightweight Go CLI for development and testing against a TAK server. It enrolls for an in-memory client certificate, opens a verified mTLS Cursor-on-Target (CoT) stream, and sends simulated straight, orbiting, or race-track positions until stopped.

@@ -6,6 +6,7 @@ Notable changes are documented here in reverse chronological order. Releases use
 
 ### Fixed
 
+- Restored custom latitude/longitude entry in the location menu, including validation, local persistence, and later selection by saved name.
 - Reject scenario tracks that define both `orbit` and `raceTrack` instead of silently choosing one motion model.
 - Make certificate enrollment and CoT stream connection cancellable by SIGINT or SIGTERM.
 - Bound enrollment and stream connection attempts to 30 seconds.
@@ -14,6 +15,7 @@ Notable changes are documented here in reverse chronological order. Releases use
 
 ### Changed
 
+- Extracted the CLI lifecycle into testable orchestration while keeping signal interception after menu and scenario preparation.
 - Scenario JSON parsing is now strict: field names are exact and case-sensitive, while unknown fields, duplicate fields, and additional trailing JSON values are rejected.
 - Added focused coverage for in-flight enrollment cancellation and timeout, TLS handshake cancellation, oversized enrollment responses, and blocked stream writes.
 - Kept signal interception after interactive selection so normal SIGINT/SIGTERM termination remains available while menus await input.

@@ -4,9 +4,9 @@ package location
 
 // Location is a named reference point on the earth's surface.
 type Location struct {
-	Name string
-	Lat  float64
-	Lon  float64
+	Name string  `json:"name"`
+	Lat  float64 `json:"lat"`
+	Lon  float64 `json:"lon"`
 }
 
 // All is the fixed list of locations a user can run a scenario from.

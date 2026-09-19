@@ -24,6 +24,7 @@ Keep the tool small and easy to build. Prefer the Go standard library and existi
 - Flags override `.env`; `.env` is optional and must never be committed because it can contain credentials.
 - Only an explicitly supplied `-location` or `-scenario` skips its menu. Values from `.env` remain fallbacks and do not suppress interactive selection.
 - Menus support raw-terminal arrow navigation and a non-terminal numbered fallback. Preserve both paths and the shared buffered stdin reader across consecutive prompts.
+- The location menu supports validated custom latitude/longitude entry. Custom locations persist under the OS user configuration directory and are available to later menus and explicit `-location` selection; keep tests isolated from the real user config path.
 - Scenario coordinates are east/north meter offsets from a selected named origin, not fixed latitude/longitude. Keep scenarios portable between locations.
 - Keep `orbit` and `raceTrack` mutually exclusive. Either patterned model takes precedence over top-level straight-motion fields, which are ignored. Scenario parsing owns validation, defaults, and knots-to-meters-per-second conversion.
 - On every tick, each track advances first, then emits one CoT event. Sensor azimuth follows the track's current course plus its configured offset.

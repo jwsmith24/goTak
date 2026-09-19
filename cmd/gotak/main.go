@@ -6,6 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -20,6 +22,25 @@ import (
 	"github.com/jwsmith24/goTak/internal/sim"
 	"github.com/jwsmith24/goTak/internal/stream"
 )
+
+type eventSenderCloser interface {
+	sim.EventSender
+	io.Closer
+}
+
+type app struct {
+	stdin  *os.File
+	stdout io.Writer
+
+	startContext  func() (context.Context, context.CancelFunc)
+	loadLocations func() ([]location.Location, error)
+
+	runLocationMenu func(*os.File, *bufio.Reader, io.Writer, []location.Location) (location.Location, error)
+	runScenarioMenu func(*os.File, *bufio.Reader, io.Writer, []menu.Option) (string, error)
+	enroll          func(context.Context, *http.Client, string, string, string) (enroll.EnrollmentResult, error)
+	dial            func(context.Context, string, []byte, []byte, [][]byte) (eventSenderCloser, error)
+	simulate        func(context.Context, []*sim.Track, time.Duration, sim.EventSender) error
+}
 
 const (
 	cotStreamPort        = "8089"
@@ -109,25 +130,57 @@ func loadTracks(scenarioPath string, origin location.Location) ([]*sim.Track, ti
 	return tracks, sc.TickInterval(), nil
 }
 
-func main() {
-	cfg, err := config.ParseFlags(os.Args[1:])
+func newApp(stdin *os.File, stdout io.Writer) app {
+	return app{
+		stdin:  stdin,
+		stdout: stdout,
+		startContext: func() (context.Context, context.CancelFunc) {
+			return signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+		},
+		loadLocations: func() ([]location.Location, error) {
+			path, err := location.CustomLocationsPath()
+			if err != nil {
+				return nil, err
+			}
+			custom, err := location.LoadCustom(path)
+			if err != nil {
+				return nil, err
+			}
+			return append(append([]location.Location{}, location.All...), custom...), nil
+		},
+		runLocationMenu: menu.RunLocationMenu,
+		runScenarioMenu: menu.RunScenarioMenu,
+		enroll:          enroll.Enroll,
+		dial: func(ctx context.Context, addr string, cert, key []byte, cas [][]byte) (eventSenderCloser, error) {
+			return stream.Dial(ctx, addr, cert, key, cas)
+		},
+		simulate: func(ctx context.Context, tracks []*sim.Track, interval time.Duration, sender sim.EventSender) error {
+			ticker := time.NewTicker(interval)
+			defer ticker.Stop()
+			return sim.Run(ctx, tracks, ticker.C, interval, sender)
+		},
+	}
+}
+
+func (a app) run(args []string) error {
+	cfg, err := config.ParseFlags(args)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "gotak:", err)
-		os.Exit(1)
+		return err
 	}
 
-	// Shared across every interactive menu shown this run: each wraps
-	// stdin exactly once, so a sequence of prompts doesn't drop bytes
-	// buffered-but-unread by an earlier one.
-	stdinReader := bufio.NewReader(os.Stdin)
+	stdinReader := bufio.NewReader(a.stdin)
+	availableLocations, err := a.loadLocations()
+	if err != nil {
+		return err
+	}
 
 	// An explicit -location flag always skips the menu, so scripted/
 	// non-interactive runs are unaffected. A GOTAK_LOCATION default from
 	// .env is just a convenience and should not suppress the menu.
-	origin := location.All[0]
+	origin := availableLocations[0]
 	if cfg.LocationFromFlag {
 		found := false
-		for _, loc := range location.All {
+		for _, loc := range availableLocations {
 			if loc.Name == cfg.LocationName {
 				origin = loc
 				found = true
@@ -135,18 +188,12 @@ func main() {
 			}
 		}
 		if !found {
-			fmt.Fprintf(os.Stderr, "gotak: unknown location %q\n", cfg.LocationName)
-			os.Exit(1)
+			return fmt.Errorf("unknown location %q", cfg.LocationName)
 		}
 	} else {
-		chosen, err := menu.RunLocationMenu(os.Stdin, stdinReader, os.Stdout, location.All)
-		if errors.Is(err, menu.ErrCancelled) {
-			fmt.Println("Cancelled.")
-			os.Exit(0)
-		}
+		chosen, err := a.runLocationMenu(a.stdin, stdinReader, a.stdout, availableLocations)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "gotak:", err)
-			os.Exit(1)
+			return err
 		}
 		origin = chosen
 	}
@@ -156,14 +203,9 @@ func main() {
 	// .env is just a convenience and should not suppress the menu.
 	if !cfg.ScenarioFromFlag {
 		if scenarios := menu.DiscoverScenarios(scenariosDir); len(scenarios) > 0 {
-			chosen, err := menu.RunScenarioMenu(os.Stdin, stdinReader, os.Stdout, scenarios)
-			if errors.Is(err, menu.ErrCancelled) {
-				fmt.Println("Cancelled.")
-				os.Exit(0)
-			}
+			chosen, err := a.runScenarioMenu(a.stdin, stdinReader, a.stdout, scenarios)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "gotak:", err)
-				os.Exit(1)
+				return err
 			}
 			cfg.ScenarioPath = chosen
 		}
@@ -171,45 +213,50 @@ func main() {
 
 	tracks, tickInterval, err := loadTracks(cfg.ScenarioPath, origin)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "gotak:", err)
-		os.Exit(1)
+		return err
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := a.startContext()
 	defer stop()
 
 	baseURL := enroll.DefaultBaseURL(cfg.ServerAddress)
-	fmt.Printf("Enrolling with %s as %s...\n", baseURL, cfg.Username)
+	fmt.Fprintf(a.stdout, "Enrolling with %s as %s...\n", baseURL, cfg.Username)
 
 	enrollCtx, cancelEnroll := context.WithTimeout(ctx, enrollmentTimeout)
-	result, err := enroll.Enroll(enrollCtx, enroll.InsecureHTTPClient(), baseURL, cfg.Username, cfg.Password)
+	result, err := a.enroll(enrollCtx, enroll.InsecureHTTPClient(), baseURL, cfg.Username, cfg.Password)
 	cancelEnroll()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "gotak: enrollment failed:", err)
-		os.Exit(1)
+		return fmt.Errorf("enrollment failed: %w", err)
 	}
-	fmt.Printf("Enrollment succeeded: received client certificate and %d CA certificate(s).\n", len(result.CACertsPEM))
+	fmt.Fprintf(a.stdout, "Enrollment succeeded: received client certificate and %d CA certificate(s).\n", len(result.CACertsPEM))
 
 	streamAddr := cfg.ServerAddress + ":" + cotStreamPort
-	fmt.Printf("Connecting to CoT stream at %s...\n", streamAddr)
+	fmt.Fprintf(a.stdout, "Connecting to CoT stream at %s...\n", streamAddr)
 	connectCtx, cancelConnect := context.WithTimeout(ctx, streamConnectTimeout)
-	sender, err := stream.Dial(connectCtx, streamAddr, result.ClientCertPEM, result.PrivateKeyPEM, result.CACertsPEM)
+	sender, err := a.dial(connectCtx, streamAddr, result.ClientCertPEM, result.PrivateKeyPEM, result.CACertsPEM)
 	cancelConnect()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "gotak: connecting to CoT stream:", err)
-		os.Exit(1)
+		return fmt.Errorf("connecting to CoT stream: %w", err)
 	}
 	defer sender.Close()
 
-	ticker := time.NewTicker(tickInterval)
-	defer ticker.Stop()
+	fmt.Fprintf(a.stdout, "Simulating %d track(s), updating every %s. Press Ctrl+C to stop.\n", len(tracks), tickInterval)
 
-	fmt.Printf("Simulating %d track(s), updating every %s. Press Ctrl+C to stop.\n", len(tracks), tickInterval)
-
-	if err := sim.Run(ctx, tracks, ticker.C, tickInterval, sender); err != nil && ctx.Err() == nil {
-		fmt.Fprintln(os.Stderr, "gotak: simulation stopped:", err)
-		os.Exit(1)
+	if err := a.simulate(ctx, tracks, tickInterval, sender); err != nil && ctx.Err() == nil {
+		return fmt.Errorf("simulation stopped: %w", err)
 	}
 
-	fmt.Println("Simulation stopped.")
+	fmt.Fprintln(a.stdout, "Simulation stopped.")
+	return nil
+}
+
+func main() {
+	err := newApp(os.Stdin, os.Stdout).run(os.Args[1:])
+	if errors.Is(err, menu.ErrCancelled) {
+		fmt.Fprintln(os.Stdout, "Cancelled.")
+		return
+	}
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "gotak:", err)
+		os.Exit(1)
+	}
 }

@@ -21,7 +21,15 @@ go run ./cmd/gotak \
   -password devpass
 ```
 
-goTak presents a location menu followed by a scenario menu. In an interactive terminal, use the up and down arrow keys and Enter; press `q`, Escape, or Ctrl+C to cancel. When input is not attached to a terminal, the menus require a numbered choice instead.
+goTak presents a location menu followed by a scenario menu.
+
+Interactive-terminal controls:
+
+- Up and Down move the highlighted selection and wrap at either end.
+- Enter selects the highlighted entry.
+- `q`, `Q`, Escape, or Ctrl+C cancels before enrollment starts.
+
+When input is not attached to a terminal, goTak prints a numbered list. Type the entry number and press Enter. Numbered mode does not interpret arrow keys, `q`, or Escape.
 
 After selection, goTak enrolls, connects, and starts sending track updates. Press Ctrl+C to stop.
 
@@ -79,7 +87,7 @@ or:
 ./run.sh
 ```
 
-Explicit flags override matching `.env` values. `GOTAK_SCENARIO` is a fallback only: unlike an explicit `-scenario` flag, it does not suppress an available interactive menu. Location selection is configured with the interactive menu or the explicit `-location` flag; the CLI does not currently use `GOTAK_LOCATION`.
+Explicit flags override matching `.env` values. `GOTAK_SCENARIO` is a fallback that does not suppress an available scenario menu. `GOTAK_LOCATION` is parsed for configuration compatibility but is not currently applied: without an explicit `-location`, the location menu always determines the origin.
 
 `.env` can contain credentials and is gitignored. Do not commit it.
 
@@ -103,7 +111,11 @@ Scenario coordinates are offsets from a named origin, so the same scenario can r
 - `Fort Campbell, KY`
 - `Wheeler Army Airfield, HI`
 
-The `-location` value must match one of these names exactly.
+The final location-menu entry is `Custom location (enter lat/lon)`. Select it to enter an optional name, latitude in decimal degrees from `-90` through `90`, and longitude from `-180` through `180`. A blank name defaults to `Custom location`.
+
+Custom entry uses ordinary line prompts after either the interactive or numbered menu selection. A valid location is saved as `custom_locations.json` under the operating system's user configuration directory in a `gotak` subdirectory, and appears by name on later runs.
+
+The `-location` value must exactly match a built-in or previously saved custom location name. Enter new coordinates through the menu once before using their saved name in scripted runs.
 
 ## Choose a Scenario
 
@@ -297,7 +309,8 @@ Enrollment and stream connection attempts time out after 30 seconds. Individual 
 ## Troubleshooting
 
 - **Missing required fields:** supply `server`, `username`, and `password` through flags or `.env`.
-- **Unknown location:** use an exact built-in location name or omit `-location` to choose interactively.
+- **Unknown location:** use an exact built-in or saved custom location name, or omit `-location` to choose interactively.
+- **Custom location cannot be saved or loaded:** verify that goTak can read and write the operating system's user configuration directory.
 - **No scenario menu:** run from the repository root so `scenarios/` can be discovered, or pass `-scenario` explicitly.
 - **Enrollment failure:** confirm credentials and access to port `8446`.
 - **Stream connection failure:** confirm access to port `8089` and that enrollment returned a valid CA chain and client certificate.
